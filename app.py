@@ -131,62 +131,65 @@ health_data["体調"]["頭脳"] = col3.text_input(
     "頭脳の状態", value=health_data["体調"]["頭脳"], key="condition_brain"
 )
 
-# 簡易カレンダー
+def generate_simple_calendar(selected_dates, data_session):
+    return pd.DataFrame(
+        {date: data_session[date]["ジャンル"] for date in selected_dates},
+        index=[f"{hour}:00" for hour in range(24)]
+    )
+
+def generate_detailed_calendar(selected_dates, data_session):
+    detailed_calendar_data = []
+    for date in selected_dates:
+        day_data = data_session[date]
+        day_data = day_data.rename(
+            columns={
+                "行動": f"{date} 行動",
+                "理由": f"{date} 理由",
+                "結果": f"{date} 結果"
+            }
+        )
+        detailed_calendar_data.append(day_data[[f"{date} 行動", f"{date} 理由", f"{date} 結果"]])
+    return pd.concat(detailed_calendar_data, axis=1)
+
+def generate_health_calendar(dates_range, health_session):
+    health_calendar = pd.DataFrame(columns=dates_range, index=[
+        "朝食", "昼食", "夕食", "間食", "服薬", "運動",
+        "体調(肉体)", "体調(精神)", "体調(頭脳)"
+    ])
+    for date in dates_range:
+        if date in health_session:
+            health_entry = health_session[date]
+            health_calendar.loc["朝食", date] = health_entry["食事"]["朝食"]
+            health_calendar.loc["昼食", date] = health_entry["食事"]["昼食"]
+            health_calendar.loc["夕食", date] = health_entry["食事"]["夕食"]
+            health_calendar.loc["間食", date] = health_entry["食事"]["間食"]
+            health_calendar.loc["服薬", date] = "\n".join(
+                [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["服薬"]]
+            )
+            health_calendar.loc["運動", date] = "\n".join(
+                [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["運動"]]
+            )
+            health_calendar.loc["体調(肉体)", date] = health_entry["体調"]["肉体"]
+            health_calendar.loc["体調(精神)", date] = health_entry["体調"]["精神"]
+            health_calendar.loc["体調(頭脳)", date] = health_entry["体調"]["頭脳"]
+    return health_calendar
+
+# カレンダー生成
+simple_calendar = generate_simple_calendar(selected_dates, st.session_state["data"])
+detailed_calendar = generate_detailed_calendar(selected_dates, st.session_state["data"])
+health_calendar = generate_health_calendar(dates_range, st.session_state["health"])
+
+# 常時表示
 st.write("### 簡易カレンダー: ジャンルのみ")
-simple_calendar = pd.DataFrame(
-    {date: st.session_state["data"][date]["ジャンル"] for date in selected_dates},
-    index=[f"{hour}:00" for hour in range(24)]
-)
 st.dataframe(simple_calendar.style.applymap(lambda v: f"background-color: {genre_colors.get(v, '#FFFFFF')};"))
 
-# 詳細カレンダー
 st.write(f"### 詳細カレンダー: {selected_dates[0]} 〜 {selected_dates[-1]}")
-detailed_calendar_data = []
-
-for date in selected_dates:
-    day_data = st.session_state["data"][date]
-    day_data = day_data.rename(
-        columns={
-            "行動": f"{date} 行動",
-            "理由": f"{date} 理由",
-            "結果": f"{date} 結果"
-        }
-    )
-    detailed_calendar_data.append(day_data[[
-        f"{date} 行動", f"{date} 理由", f"{date} 結果"
-    ]])
-
-# データ結合
-detailed_calendar = pd.concat(detailed_calendar_data, axis=1)
-
-# 表示
 st.dataframe(detailed_calendar)
 
-# 統一健康カレンダー
 st.write("### 健康カレンダー")
-health_calendar = pd.DataFrame(columns=dates_range, index=[
-    "朝食", "昼食", "夕食", "間食", "服薬", "運動", 
-    "体調(肉体)", "体調(精神)", "体調(頭脳)"
-])
-
-for date in dates_range:
-    if date in st.session_state["health"]:
-        health_entry = st.session_state["health"][date]
-        health_calendar.loc["朝食", date] = health_entry["食事"]["朝食"]
-        health_calendar.loc["昼食", date] = health_entry["食事"]["昼食"]
-        health_calendar.loc["夕食", date] = health_entry["食事"]["夕食"]
-        health_calendar.loc["間食", date] = health_entry["食事"]["間食"]
-        health_calendar.loc["服薬", date] = "\n".join(
-            [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["服薬"]]
-        )
-        health_calendar.loc["運動", date] = "\n".join(
-            [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["運動"]]
-        )
-        health_calendar.loc["体調(肉体)", date] = health_entry["体調"]["肉体"]
-        health_calendar.loc["体調(精神)", date] = health_entry["体調"]["精神"]
-        health_calendar.loc["体調(頭脳)", date] = health_entry["体調"]["頭脳"]
-
 st.dataframe(health_calendar)
+
+
 
 import json
 from google.oauth2.service_account import Credentials
@@ -250,23 +253,20 @@ def share_file_with_user(file_id, user_email):
         print(f"Failed to share file: {e}")
         raise
 
-# 実際のカレンダーデータを保存してGoogle Driveにアップロードするコード
 def save_calendars_to_drive(simple_calendar, detailed_calendar, health_calendar):
+    # ローカル保存
     os.makedirs("data", exist_ok=True)
-
-    # 簡易カレンダー保存
     simple_file_path = "data/simple_calendar.csv"
-    simple_calendar.to_csv(simple_file_path, index=True)
-    upload_to_google_drive("simple_calendar.csv", simple_file_path)
-
-    # 詳細カレンダー保存
     detailed_file_path = "data/detailed_calendar.csv"
-    detailed_calendar.to_csv(detailed_file_path, index=True)
-    upload_to_google_drive("detailed_calendar.csv", detailed_file_path)
-
-    # 健康カレンダー保存
     health_file_path = "data/health_calendar.csv"
+
+    simple_calendar.to_csv(simple_file_path, index=True)
+    detailed_calendar.to_csv(detailed_file_path, index=True)
     health_calendar.to_csv(health_file_path, index=True)
+
+    # Google Drive にアップロード
+    upload_to_google_drive("simple_calendar.csv", simple_file_path)
+    upload_to_google_drive("detailed_calendar.csv", detailed_file_path)
     upload_to_google_drive("health_calendar.csv", health_file_path)
 
 
