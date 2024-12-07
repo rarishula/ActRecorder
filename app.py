@@ -254,11 +254,6 @@ def share_file_with_user(file_id, user_email):
         raise
 
 def save_calendars_to_drive():
-    # 各カレンダーの生成
-    simple_calendar = generate_simple_calendar()
-    detailed_calendar = generate_detailed_calendar()
-    health_calendar = generate_health_calendar()
-
     # ローカルに保存
     simple_file_path = "simple_calendar.csv"
     detailed_file_path = "detailed_calendar.csv"
