@@ -191,11 +191,12 @@ st.dataframe(health_calendar)
 import json
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+import pandas as pd
 import streamlit as st
 
 # Google Drive API 認証
 def authenticate_google_drive():
-    # Streamlit Secrets からサービスアカウント情報を取得
     service_account_info = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT_KEY"])
     SCOPES = ['https://www.googleapis.com/auth/drive.file']
     credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
