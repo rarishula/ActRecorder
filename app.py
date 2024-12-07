@@ -250,22 +250,25 @@ def share_file_with_user(file_id, user_email):
         print(f"Failed to share file: {e}")
         raise
 
-# サンプルファイルを保存してアップロード
-def save_calendars_to_drive():
-    # ローカルに保存
-    simple_file_path = "simple_calendar.csv"
-    detailed_file_path = "detailed_calendar.csv"
-    health_file_path = "health_calendar.csv"
-    
-    # CSVファイルを保存する（例として）
-    pd.DataFrame({"Sample": [1, 2, 3]}).to_csv(simple_file_path, index=False)
-    pd.DataFrame({"Sample": [4, 5, 6]}).to_csv(detailed_file_path, index=False)
-    pd.DataFrame({"Sample": [7, 8, 9]}).to_csv(health_file_path, index=False)
+# 実際のカレンダーデータを保存してGoogle Driveにアップロードするコード
+def save_calendars_to_drive(simple_calendar, detailed_calendar, health_calendar):
+    os.makedirs("data", exist_ok=True)
 
-    # Google Drive にアップロード
+    # 簡易カレンダー保存
+    simple_file_path = "data/simple_calendar.csv"
+    simple_calendar.to_csv(simple_file_path, index=True)
     upload_to_google_drive("simple_calendar.csv", simple_file_path)
+
+    # 詳細カレンダー保存
+    detailed_file_path = "data/detailed_calendar.csv"
+    detailed_calendar.to_csv(detailed_file_path, index=True)
     upload_to_google_drive("detailed_calendar.csv", detailed_file_path)
+
+    # 健康カレンダー保存
+    health_file_path = "data/health_calendar.csv"
+    health_calendar.to_csv(health_file_path, index=True)
     upload_to_google_drive("health_calendar.csv", health_file_path)
+
 
 # ボタンで保存をトリガー
 if st.button("Google Drive にカレンダー形式で保存"):
