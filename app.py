@@ -202,18 +202,54 @@ def authenticate_google_drive():
     credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
     return build('drive', 'v3', credentials=credentials)
 
-# Google Drive にファイルをアップロード
 def upload_to_google_drive(file_name, file_path):
+    creds = authenticate_google_drive()
+    service = build('drive', 'v3', credentials=creds)
+
+    file_metadata = {'name': file_name}
+    media = MediaFileUpload(file_path, mimetype='text/csv')
+
     try:
-        service = authenticate_google_drive()
-        file_metadata = {'name': file_name}
-        media = MediaFileUpload(file_path, mimetype='text/csv')
-        uploaded_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        st.success(f"Uploaded {file_name} to Google Drive. File ID: {uploaded_file.get('id')}")
-        return uploaded_file.get('id')
+        # ファイルのアップロード
+        uploaded_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+
+        file_id = uploaded_file.get('id')
+        print(f"Uploaded {file_name} to Google Drive. File ID: {file_id}")
+
+        # 自分のGoogleアカウントに自動共有
+        user_email = "k.iwahori.eps@gmail.com"  # ここに共有したいGoogleアカウントのメールアドレスを指定
+        share_file_with_user(file_id, user_email)
+
+        return file_id
     except Exception as e:
-        st.error(f"Failed to upload {file_name}: {e}")
+        print(f"Failed to upload {file_name}: {e}")
         raise
+
+def share_file_with_user(file_id, user_email):
+    creds = authenticate_google_drive()
+    service = build('drive', 'v3', credentials=creds)
+
+    permission = {
+        'type': 'user',  # ユーザーに共有
+        'role': 'writer',  # 必要に応じて 'reader' に変更
+        'emailAddress': k.iwahori.eps@gmail.com  # 共有するメールアドレス
+    }
+
+    try:
+        service.permissions().create(
+            fileId=file_id,
+            body=permission,
+            fields='id'
+        ).execute()
+        print(f"File shared with {user_email}")
+    except Exception as e:
+        print(f"Failed to share file: {e}")
+        raise
+
 
 # サンプルファイルを保存してアップロード
 def save_calendars_to_drive():
