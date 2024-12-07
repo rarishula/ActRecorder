@@ -188,16 +188,20 @@ for date in dates_range:
 
 st.dataframe(health_calendar)
 
-from googleapiclient.discovery import build
-from google.oauth2.service_account import Credentials
 from googleapiclient.http import MediaFileUpload
 import os
+import json
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
 # Google Drive API 認証
 def authenticate_google_drive():
+    # Streamlit Secrets からサービスアカウント情報を取得
+    service_account_info = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT_KEY"])
     SCOPES = ['https://www.googleapis.com/auth/drive.file']
-    creds = Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
-    return creds
+    credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    return build('drive', 'v3', credentials=credentials)
+
 
 
 def save_calendars_to_drive():
