@@ -202,9 +202,9 @@ def authenticate_google_drive():
     credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
     return build('drive', 'v3', credentials=credentials)
 
+# Google Drive にファイルをアップロード
 def upload_to_google_drive(file_name, file_path):
-    creds = authenticate_google_drive()
-    service = build('drive', 'v3', credentials=creds)
+    service = authenticate_google_drive()
 
     file_metadata = {'name': file_name}
     media = MediaFileUpload(file_path, mimetype='text/csv')
@@ -221,7 +221,7 @@ def upload_to_google_drive(file_name, file_path):
         print(f"Uploaded {file_name} to Google Drive. File ID: {file_id}")
 
         # 自分のGoogleアカウントに自動共有
-        user_email = "k.iwahori.eps@gmail.com"  # ここに共有したいGoogleアカウントのメールアドレスを指定
+        user_email = "k.iwahori.eps@gmail.com"  # 共有したいGoogleアカウントのメールアドレス
         share_file_with_user(file_id, user_email)
 
         return file_id
@@ -229,14 +229,14 @@ def upload_to_google_drive(file_name, file_path):
         print(f"Failed to upload {file_name}: {e}")
         raise
 
+# Google Drive ファイルを共有
 def share_file_with_user(file_id, user_email):
-    creds = authenticate_google_drive()
-    service = build('drive', 'v3', credentials=creds)
+    service = authenticate_google_drive()
 
     permission = {
         'type': 'user',  # ユーザーに共有
         'role': 'writer',  # 必要に応じて 'reader' に変更
-        'emailAddress': k.iwahori.eps@gmail.com  # 共有するメールアドレス
+        'emailAddress': user_email  # 引数として受け取るメールアドレス
     }
 
     try:
@@ -249,7 +249,6 @@ def share_file_with_user(file_id, user_email):
     except Exception as e:
         print(f"Failed to share file: {e}")
         raise
-
 
 # サンプルファイルを保存してアップロード
 def save_calendars_to_drive():
@@ -270,4 +269,8 @@ def save_calendars_to_drive():
 
 # ボタンで保存をトリガー
 if st.button("Google Drive にカレンダー形式で保存"):
-    save_calendars_to_drive()
+    try:
+        save_calendars_to_drive()
+        st.success("3つのカレンダーをGoogle Driveに保存しました！")
+    except Exception as e:
+        st.error(f"エラーが発生しました: {e}")
