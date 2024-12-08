@@ -235,72 +235,86 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-import streamlit as st
-import streamlit.components.v1 as components
-
-# JavaScriptコードを埋め込む
-indexeddb_csv_test = """
+# IndexedDB JavaScriptコード：保存
+save_csv_js = """
 <script>
-    (function() {
+    function saveCSVToIndexedDB() {
         const dbName = "TestDB";
-        const storeName = "CSVStore";
-        const csvData = `name,age,city
-John,25,New York
-Alice,30,Los Angeles
-Bob,22,Chicago`;
+        const storeName = "csv_store";
+        const testCSV = `name,age,city\nJohn,25,New York\nAlice,30,Los Angeles\nBob,22,Chicago`;
 
-        // データベースを開く/作成する（バージョンを上げる）
-        const request = indexedDB.open(dbName, 2);
+        const request = indexedDB.open(dbName, 1);
 
-        request.onupgradeneeded = (event) => {
+        request.onupgradeneeded = function(event) {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName); // オブジェクトストアを作成
-                console.log(`ObjectStore '${storeName}' created.`);
+                db.createObjectStore(storeName);
             }
         };
 
-        request.onsuccess = (event) => {
-            console.log("Database opened successfully.");
+        request.onsuccess = function(event) {
             const db = event.target.result;
-
-            // オブジェクトストアにデータを保存
             const transaction = db.transaction(storeName, "readwrite");
             const store = transaction.objectStore(storeName);
-            store.put(csvData, "testCSV");
-
-            // データを取得して表示
-            const getRequest = store.get("testCSV");
-            getRequest.onsuccess = (event) => {
-                const retrievedCSV = event.target.result;
-                const output = document.getElementById("output");
-                output.textContent = retrievedCSV || "データが見つかりませんでした。";
-                console.log("Data retrieved:", retrievedCSV);
-            };
-
-            getRequest.onerror = (event) => {
-                console.error("データ取得エラー:", event.target.error);
-            };
+            store.put(testCSV, "test_csv");
+            console.log("CSV data saved to IndexedDB.");
         };
 
-        request.onerror = (event) => {
-            const errorOutput = document.getElementById("output");
-            errorOutput.textContent = "IndexedDBエラー: " + event.target.error;
-            console.error("IndexedDBエラー:", event.target.error);
+        request.onerror = function(event) {
+            console.error("Error opening database:", event.target.errorCode);
         };
-    })();
+    }
+    saveCSVToIndexedDB();
 </script>
-
-<div>
-    <h3>IndexedDBのテスト結果:</h3>
-    <pre id="output">読み込み中...</pre>
-</div>
-
-
 """
 
-# Streamlitアプリに埋め込む
-components.html(indexeddb_csv_test, height=300)
+# IndexedDB JavaScriptコード：読み込み
+load_csv_js = """
+<script>
+    function loadCSVFromIndexedDB() {
+        const dbName = "TestDB";
+        const storeName = "csv_store";
+
+        const request = indexedDB.open(dbName, 1);
+
+        request.onsuccess = function(event) {
+            const db = event.target.result;
+            const transaction = db.transaction(storeName, "readonly");
+            const store = transaction.objectStore(storeName);
+            const getRequest = store.get("test_csv");
+
+            getRequest.onsuccess = function() {
+                const csvData = getRequest.result;
+                if (csvData) {
+                    const csvElement = document.getElementById("csv-display");
+                    csvElement.textContent = csvData;
+                    console.log("CSV data loaded from IndexedDB.");
+                } else {
+                    console.log("No data found in IndexedDB.");
+                }
+            };
+
+            getRequest.onerror = function(event) {
+                console.error("Error reading data:", event.target.errorCode);
+            };
+        };
+
+        request.onerror = function(event) {
+            console.error("Error opening database:", event.target.errorCode);
+        };
+    }
+    loadCSVFromIndexedDB();
+</script>
+<div id="csv-display"></div>
+"""
+
+# Streamlitボタン
+if st.button("Save Test CSV to IndexedDB"):
+    st.components.v1.html(save_csv_js, height=0)
+
+if st.button("Load Test CSV from IndexedDB"):
+    st.components.v1.html(load_csv_js, height=200)
+
 
 
 
