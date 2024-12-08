@@ -246,7 +246,7 @@ const storeName = "KeyValueStore";
 
 // データベースを開く/作成する
 function openDatabase(callback) {
-    const request = indexedDB.open(dbName, 1);
+    const request = indexedDB.open(dbName); // バージョンを指定しない
 
     request.onupgradeneeded = (event) => {
         const db = event.target.result;
