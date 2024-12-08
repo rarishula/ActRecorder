@@ -246,11 +246,12 @@ indexeddb_test_html = """
         const csvData = `name,age,city\nJohn,25,New York\nAlice,30,Los Angeles\nBob,22,Chicago`;
 
         // データベースを開く
-        const request = indexedDB.open(dbName, 1); // バージョンを1に設定
+        const request = indexedDB.open(dbName);
+
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName);
+                db.createObjectStore(storeName); // 必要に応じてストアを作成
                 console.log(`ObjectStore '${storeName}' created.`);
             }
         };
@@ -269,15 +270,7 @@ indexeddb_test_html = """
     }
 
     function loadCSV() {
-        const request = indexedDB.open(dbName, 1);
-
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName);
-                console.log(`ObjectStore '${storeName}' created.`);
-            }
-        };
+        const request = indexedDB.open(dbName);
 
         request.onsuccess = (event) => {
             const db = event.target.result;
@@ -309,6 +302,7 @@ indexeddb_test_html = """
     <h3>IndexedDB Test:</h3>
     <pre id="output">No data loaded.</pre>
 </div>
+
 
 
 """
