@@ -318,11 +318,13 @@ def save_if_needed():
     else:
         print(f"[INFO] リフレッシュカウント: {count}")  
 
+# オートセーブ処理
+save_if_needed()
+
 
 # 10秒ごとにリフレッシュ
 count = st_autorefresh(interval=10 * 1000, key="refresh")
 
-# オートセーブ処理
-save_if_needed()
+
 
 
