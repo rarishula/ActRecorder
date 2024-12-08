@@ -238,7 +238,7 @@ def save_if_needed():
 
 import streamlit as st
 
-# JavaScriptコード（保存ボタンと読み込みボタンの分離）
+# JavaScriptコード（バージョンの動的処理を追加）
 indexeddb_html = """
 <div>
     <button onclick="saveData()">保存</button>
@@ -253,12 +253,15 @@ indexeddb_html = """
     // IndexedDBにデータを保存する関数
     function saveData() {
         const dataToSave = "保存されたデータです！";
-        const request = indexedDB.open(dbName, 1);
+
+        // IndexedDBを開く（既存のバージョンに合わせる）
+        const request = indexedDB.open(dbName);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(storeName)) {
                 db.createObjectStore(storeName); // オブジェクトストアを作成
+                console.log(`ObjectStore '${storeName}' created.`);
             }
         };
 
@@ -286,7 +289,7 @@ indexeddb_html = """
 
     // IndexedDBからデータを読み込む関数
     function loadData() {
-        const request = indexedDB.open(dbName, 1);
+        const request = indexedDB.open(dbName);
 
         request.onsuccess = (event) => {
             const db = event.target.result;
