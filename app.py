@@ -305,17 +305,22 @@ if "last_saved_state" not in st.session_state:
 
 def has_changes():
     """監視対象のデータが変更されたかを判定"""
-    return (
-        st.session_state["data"] != st.session_state["last_saved_state"]["data"] or
-        st.session_state["health"] != st.session_state["last_saved_state"]["health"]
-    )
+    # データフレームを文字列に変換して比較
+    current_data_str = {k: v.to_csv() for k, v in st.session_state["data"].items()}
+    last_saved_data_str = {k: v.to_csv() for k, v in st.session_state["last_saved_state"]["data"].items()}
+
+    current_health_str = {k: str(v) for k, v in st.session_state["health"].items()}
+    last_saved_health_str = {k: str(v) for k, v in st.session_state["last_saved_state"]["health"].items()}
+
+    return current_data_str != last_saved_data_str or current_health_str != last_saved_health_str
 
 def update_last_saved_state():
     """最後に保存された状態を更新"""
     st.session_state["last_saved_state"] = {
-        "data": copy.deepcopy(st.session_state["data"]),
+        "data": {k: v.copy() for k, v in st.session_state["data"].items()},
         "health": copy.deepcopy(st.session_state["health"]),
     }
+
 
 def save_if_needed():
     """変更があれば保存を実行"""
