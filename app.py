@@ -233,39 +233,31 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-# サービスワーカーファイルの提供
-@st.cache_data
-def serve_service_worker():
-    file_path = Path("service-worker.js")
-    if file_path.exists():
-        with open(file_path, "r", encoding="utf-8") as file:
-            return file.read()
-    return None
-
-# サービスワーカーの設定
-service_worker_content = serve_service_worker()
-
-if service_worker_content:
-    st.markdown(
-        f"""
-        <script>
-            if ('serviceWorker' in navigator) {{
-                navigator.serviceWorker.register('/service-worker.js')
-                .then(function(registration) {{
-                    console.log('Service Worker registered with scope:', registration.scope);
-                }}).catch(function(error) {{
-                    console.error('Service Worker registration failed:', error);
-                }});
-            }}
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Service Worker のエンドポイントでファイルを提供
-    st.experimental_get("/service-worker.js", lambda: service_worker_content)
+# Service Worker の内容を取得
+service_worker_path = Path(__file__).parent / "service-worker.js"
+if service_worker_path.exists():
+    service_worker_content = service_worker_path.read_text()
 else:
-    st.error("Service Worker ファイルが見つかりませんでした。")
+    service_worker_content = "// Service Worker file not found."
+
+# `/service-worker.js` へのリクエストを処理
+if st.experimental_get_query_params().get("service_worker") == ["1"]:
+    st.write(service_worker_content)
+    st.stop()
+
+# HTML を埋め込む
+st.components.v1.html("""
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/?service_worker=1')
+        .then(function(registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+        }).catch(function(error) {
+            console.error('Service Worker registration failed:', error);
+        });
+    }
+</script>
+""")
 
 # ジャンルと色の定義（簡易カレンダー用）
 genres = [
