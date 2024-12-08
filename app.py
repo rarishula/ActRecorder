@@ -13,6 +13,7 @@ from streamlit_autorefresh import st_autorefresh
 from googleapiclient.http import MediaIoBaseDownload
 import copy
 from pathlib import Path
+import mimetypes
 
 # ヘルパー関数：30分間隔の時刻リストを作成
 def get_time_options():
@@ -233,23 +234,35 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-# Service Worker の内容を取得
-service_worker_path = Path(__file__).parent / "service-worker.js"
-if service_worker_path.exists():
-    service_worker_content = service_worker_path.read_text()
-else:
-    service_worker_content = "// Service Worker file not found."
 
-# `/service-worker.js` へのリクエストを処理
-if st.experimental_get_query_params().get("service_worker") == ["1"]:
-    st.write(service_worker_content)
-    st.stop()
 
-# HTML を埋め込む
-st.components.v1.html("""
+# 静的ファイルを提供する関数
+def serve_static_file(file_name):
+    static_dir = Path(__file__).parent / "static"
+    file_path = static_dir / file_name
+    if file_path.exists():
+        mime_type, _ = mimetypes.guess_type(file_path)
+        with open(file_path, "rb") as file:
+            return file.read(), mime_type
+    return None, None
+
+# 静的ファイルの提供を試みる
+query_params = st.experimental_get_query_params()
+if "static_file" in query_params:
+    requested_file = query_params["static_file"][0]
+    content, mime_type = serve_static_file(requested_file)
+    if content:
+        st.write(f"Serving static file: {requested_file}")
+        st.experimental_set_query_params()  # Reset query params to avoid reloading
+        st.markdown(
+            f'<script>window.location = "data:{mime_type};base64,{content.decode("utf-8")}"</script>',
+            unsafe_allow_html=True,
+        )
+
+service_worker_registration = """
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/?service_worker=1')
+        navigator.serviceWorker.register('/static/service-worker.js')
         .then(function(registration) {
             console.log('Service Worker registered with scope:', registration.scope);
         }).catch(function(error) {
@@ -257,7 +270,12 @@ st.components.v1.html("""
         });
     }
 </script>
-""")
+"""
+
+# HTML として埋め込み
+st.components.v1.html(service_worker_registration, height=0)
+
+
 
 # ジャンルと色の定義（簡易カレンダー用）
 genres = [
