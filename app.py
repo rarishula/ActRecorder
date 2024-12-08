@@ -199,6 +199,7 @@ from googleapiclient.http import MediaFileUpload
 import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
+from googleapiclient.http import MediaIoBaseDownload
 
 
 # Google Drive API 認証
