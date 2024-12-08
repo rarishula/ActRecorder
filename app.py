@@ -235,87 +235,70 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
+import streamlit as st
 
-# IndexedDBを使用するためのJavaScriptコード
-indexeddb_test_html = """
+# JavaScriptを埋め込み
+indexeddb_test = """
 <script>
-const dbName = "TestDB";
-const storeName = "CSVStore";
-const dbVersion = 2; // 必要ならバージョンを上げる
+    (function() {
+        const dbName = "SimpleTestDB";
+        const storeName = "TestStore";
+        const key = "sampleKey";
+        const dataToSave = "Hello, IndexedDB!";
 
-function saveCSV() {
-    const csvData = `name,age,city\nJohn,25,New York\nAlice,30,Los Angeles\nBob,22,Chicago`;
+        // ボタンがクリックされたときの処理
+        window.runIndexedDBTest = function() {
+            const request = indexedDB.open(dbName, 1);
 
-    const request = indexedDB.open(dbName, dbVersion);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(storeName)) {
+                    db.createObjectStore(storeName);
+                    console.log(`ObjectStore '${storeName}' created.`);
+                }
+            };
 
-    request.onupgradeneeded = (event) => {
-        const db = event.target.result;
+            request.onsuccess = (event) => {
+                const db = event.target.result;
 
-        // オブジェクトストアを作成
-        if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName);
-            console.log(`ObjectStore '${storeName}' created.`);
-        }
-    };
+                // データを保存
+                const transaction = db.transaction(storeName, "readwrite");
+                const store = transaction.objectStore(storeName);
+                store.put(dataToSave, key);
+                console.log("Data saved:", dataToSave);
 
-    request.onsuccess = (event) => {
-        const db = event.target.result;
+                // データを読み込み
+                const getRequest = store.get(key);
+                getRequest.onsuccess = (event) => {
+                    const result = event.target.result;
+                    const output = document.getElementById("output");
+                    output.textContent = result || "No data found.";
+                    console.log("Data retrieved:", result);
+                };
 
-        // トランザクションでデータを保存
-        const transaction = db.transaction(storeName, "readwrite");
-        const store = transaction.objectStore(storeName);
-        store.put(csvData, "testCSV");
-        console.log("Data saved successfully.");
-    };
+                getRequest.onerror = (event) => {
+                    console.error("Error retrieving data:", event.target.error);
+                };
+            };
 
-    request.onerror = (event) => {
-        console.error("Error saving data:", event.target.error);
-    };
-}
-
-function loadCSV() {
-    const request = indexedDB.open(dbName, dbVersion);
-
-    request.onsuccess = (event) => {
-        const db = event.target.result;
-
-        // トランザクションでデータを取得
-        const transaction = db.transaction(storeName, "readonly");
-        const store = transaction.objectStore(storeName);
-        const getRequest = store.get("testCSV");
-
-        getRequest.onsuccess = (event) => {
-            const retrievedCSV = event.target.result;
-            const output = document.getElementById("output");
-            output.textContent = retrievedCSV || "No data found.";
-            console.log("Data loaded:", retrievedCSV);
+            request.onerror = (event) => {
+                console.error("Error opening database:", event.target.error);
+            };
         };
-
-        getRequest.onerror = (event) => {
-            console.error("Error loading data:", event.target.error);
-        };
-    };
-
-    request.onerror = (event) => {
-        console.error("Error opening database:", event.target.error);
-    };
-}
+    })();
 </script>
 
 <div>
-    <button onclick="saveCSV()">Save CSV</button>
-    <button onclick="loadCSV()">Load CSV</button>
-    <h3>IndexedDB Test:</h3>
-    <pre id="output">No data loaded.</pre>
+    <button onclick="runIndexedDBTest()">Run IndexedDB Test</button>
+    <h3>Test Result:</h3>
+    <pre id="output">Press the button to run the test.</pre>
 </div>
-
-
-
 """
 
+# Streamlitに埋め込む
+st.components.v1.html(indexeddb_test)
 
-# Streamlitアプリに埋め込む
-st.components.v1.html(indexeddb_test_html, height=300)
+
 
 
 
