@@ -226,14 +226,20 @@ def download_csv_as_dataframe(service, file_id):
 # Google Drive 内の最新ファイルを探す関数
 def get_latest_file(service, prefix):
     """
-    Google Drive 上で指定された prefix にマッチする最新ファイルを検索する。
+    Google Drive 上で指定された prefix を含む最新のファイルを検索する。
     """
     query = f"name contains '{prefix}'"
-    results = service.files().list(q=query, spaces="drive", fields="files(id, name, modifiedTime)", orderBy="modifiedTime desc").execute()
+    results = service.files().list(
+        q=query,
+        spaces="drive",
+        fields="files(id, name, modifiedTime)",
+        orderBy="modifiedTime desc"
+    ).execute()
     files = results.get("files", [])
     if not files:
-        raise FileNotFoundError(f"Google Drive 内に '{prefix}' にマッチするファイルが見つかりません。")
+        raise FileNotFoundError(f"Google Drive 内に '{prefix}' を含むファイルが見つかりません。")
     return files[0]  # 最新のファイルを返す
+
 
 # 初回読み込み処理
 def load_data_from_drive():
