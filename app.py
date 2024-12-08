@@ -245,41 +245,24 @@ indexeddb_js = """
         const storeName = "KeyValueStore";
 
         function openDatabase(callback) {
-            let dbVersion = undefined;
+            const request = indexedDB.open(dbName, 1);
 
-            // 既存のデータベースのバージョンを取得
-            const checkRequest = indexedDB.open(dbName);
-            checkRequest.onsuccess = (event) => {
+            request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                dbVersion = db.version; // 既存のバージョンを取得
-                db.close();
-                proceedOpenDatabase();
+                if (!db.objectStoreNames.contains(storeName)) {
+                    db.createObjectStore(storeName);
+                    console.log(ObjectStore '${storeName}' created.);
+                }
             };
 
-            checkRequest.onerror = (event) => {
-                proceedOpenDatabase(); // データベースがない場合も進める
+            request.onsuccess = (event) => {
+                const db = event.target.result;
+                callback(null, db);
             };
 
-            function proceedOpenDatabase() {
-                const request = indexedDB.open(dbName, dbVersion || 1); // バージョンを指定
-
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) {
-                        db.createObjectStore(storeName);
-                        console.log(`ObjectStore '${storeName}' created.`);
-                    }
-                };
-
-                request.onsuccess = (event) => {
-                    const db = event.target.result;
-                    callback(null, db);
-                };
-
-                request.onerror = (event) => {
-                    callback(event.target.error, null);
-                };
-            }
+            request.onerror = (event) => {
+                callback(event.target.error, null);
+            };
         }
 
         function saveToIndexedDB(key, value) {
@@ -305,7 +288,7 @@ indexeddb_js = """
 
                     const putRequest = store.put(value, key);
                     putRequest.onsuccess = () => {
-                        console.log(`Data saved with key '${key}':`, value);
+                        console.log(Data saved with key '${key}':, value);
                     };
 
                     putRequest.onerror = (event) => {
