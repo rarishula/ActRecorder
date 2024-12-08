@@ -14,6 +14,7 @@ from googleapiclient.http import MediaIoBaseDownload
 import copy
 from pathlib import Path
 import mimetypes
+import streamlit.components.v1 as components
 
 # ヘルパー関数：30分間隔の時刻リストを作成
 def get_time_options():
@@ -234,14 +235,19 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-import streamlit.components.v1 as components
 
 # JavaScriptコードを埋め込む
-indexeddb_test = """
+indexeddb_csv_test = """
 <script>
     // IndexedDBの初期化
     const dbName = "TestDB";
-    const storeName = "TestStore";
+    const storeName = "CSVStore";
+
+    // テスト用CSVデータ
+    const csvData = `name,age,city
+John,25,New York
+Alice,30,Los Angeles
+Bob,22,Chicago`;
 
     // データベースを開く/作成する
     const request = indexedDB.open(dbName, 1);
@@ -253,46 +259,7 @@ indexeddb_test = """
         }
     };
 
-    request.onsuccess = (event) => {
-        const db = event.target.result;
-
-        // データを保存する
-        const tx = db.transaction(storeName, "readwrite");
-        const store = tx.objectStore(storeName);
-        store.put("Hello, IndexedDB!", "testKey");
-
-        tx.oncomplete = () => {
-            // データを取得して表示する
-            const readTx = db.transaction(storeName, "readonly");
-            const readStore = readTx.objectStore(storeName);
-            const getRequest = readStore.get("testKey");
-
-            getRequest.onsuccess = (event) => {
-                const div = document.createElement('div');
-                div.textContent = "IndexedDBから取得した値: " + event.target.result;
-                div.style.color = 'green';
-                div.style.fontSize = '20px';
-                document.body.appendChild(div);
-            };
-        };
-    };
-
-    request.onerror = (event) => {
-        const div = document.createElement('div');
-        div.textContent = "IndexedDBの初期化に失敗しました";
-        div.style.color = 'red';
-        div.style.fontSize = '20px';
-        document.body.appendChild(div);
-    };
-</script>
-"""
-
-st.title("IndexedDBのテスト")
-components.html(indexeddb_test, height=100)
-
-st.write("ブラウザに緑色のメッセージが表示されるか確認してください。")
-
-
+   
 
 
 
