@@ -240,6 +240,7 @@ import streamlit as st
 
 # JavaScriptコード（バージョンの動的処理を追加）
 indexeddb_html = """
+<script>
 const dbName = "TestDB";
 const storeName = "KeyValueStore";
 
@@ -319,6 +320,14 @@ function loadData() {
         }
     });
 }
+</script>
+
+<!-- ボタンと表示エリア -->
+<div>
+    <button onclick="saveData()">保存</button>
+    <button onclick="loadData()">読み込み</button>
+    <pre id="output">結果がここに表示されます。</pre>
+</div>
 
 """
 
