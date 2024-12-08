@@ -242,13 +242,11 @@ indexeddb_test_html = """
     const dbName = "TestDB";
     const storeName = "CSVStore";
 
-    // データを保存する関数
     function saveCSV() {
         const csvData = `name,age,city\nJohn,25,New York\nAlice,30,Los Angeles\nBob,22,Chicago`;
 
         // データベースを開く
-        const request = indexedDB.open(dbName);
-
+        const request = indexedDB.open(dbName, 1); // バージョンを1に設定
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(storeName)) {
@@ -270,9 +268,8 @@ indexeddb_test_html = """
         };
     }
 
-    // データをロードする関数
     function loadCSV() {
-        const request = indexedDB.open(dbName);
+        const request = indexedDB.open(dbName, 1);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
