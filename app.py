@@ -254,19 +254,23 @@ def share_file_with_user(file_id, user_email):
         raise
 
 def save_calendars_to_drive():
-    # ローカルに保存
-    simple_file_path = "simple_calendar.csv"
-    detailed_file_path = "detailed_calendar.csv"
-    health_file_path = "health_calendar.csv"
+    # 現在の日付を取得
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    
+    # ファイル名に日付を追加
+    simple_file_path = f"simple_calendar_{current_date}.csv"
+    detailed_file_path = f"detailed_calendar_{current_date}.csv"
+    health_file_path = f"health_calendar_{current_date}.csv"
 
+    # ローカルに保存
     simple_calendar.to_csv(simple_file_path, index=True)
     detailed_calendar.to_csv(detailed_file_path, index=True)
     health_calendar.to_csv(health_file_path, index=True)
 
     # Google Drive にアップロード
-    upload_to_google_drive("simple_calendar.csv", simple_file_path)
-    upload_to_google_drive("detailed_calendar.csv", detailed_file_path)
-    upload_to_google_drive("health_calendar.csv", health_file_path)
+    upload_to_google_drive(f"simple_calendar_{current_date}.csv", simple_file_path)
+    upload_to_google_drive(f"detailed_calendar_{current_date}.csv", detailed_file_path)
+    upload_to_google_drive(f"health_calendar_{current_date}.csv", health_file_path)
 
 
 # ボタンで保存をトリガー
