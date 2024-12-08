@@ -315,19 +315,11 @@ def save_if_needed():
         update_last_saved_state()  # スナップショットを更新
         st.success("変更を検知し、自動保存しました！")
 
-if "is_first_refresh" not in st.session_state:
-    st.session_state["is_first_refresh"] = True  # 初回リフレッシュを判定
-    st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)  # 初期状態を保存
 
-
-# リフレッシュをトリガー（10秒ごと）
+# 10秒ごとにリフレッシュ
 count = st_autorefresh(interval=10 * 1000, key="refresh")
 
-# リフレッシュ時の処理
-if st.session_state["is_first_refresh"]:
-    # 初回リフレッシュをスキップ
-    st.session_state["is_first_refresh"] = False
-else:
-    # 通常の保存処理を実行
-    save_if_needed()
+# オートセーブ処理
+save_if_needed()
+
 
