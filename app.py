@@ -315,8 +315,7 @@ def save_if_needed():
         update_last_saved_state()  # スナップショットを更新
         st.success("変更を検知し、自動保存しました！")
 
-    else:
-        print(f"[INFO] リフレッシュカウント: {count}")  
+
 
 # オートセーブ処理
 save_if_needed()
