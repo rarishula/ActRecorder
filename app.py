@@ -241,51 +241,64 @@ import streamlit.components.v1 as components
 # JavaScriptコードを埋め込む
 indexeddb_csv_test = """
 <script>
-    // IndexedDBの初期化
-    const dbName = "TestDB";
-    const storeName = "CSVStore";
+    (function() {
+        // IndexedDBの初期化
+        const dbName = "TestDB";
+        const storeName = "CSVStore";
 
-    // テスト用CSVデータ
-    const csvData = `name,age,city
+        // テスト用CSVデータ
+        const csvData = `name,age,city
 John,25,New York
 Alice,30,Los Angeles
 Bob,22,Chicago`;
 
-    // データベースを開く/作成する
-    const request = indexedDB.open(dbName, 1);
+        // データベースを開く/作成する
+        const request = indexedDB.open(dbName, 1); // データベースバージョンを明示的に設定
 
-    request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName);
-        }
-    };
-
-    request.onsuccess = (event) => {
-        const db = event.target.result;
-
-        // データを保存
-        const transaction = db.transaction(storeName, "readwrite");
-        const store = transaction.objectStore(storeName);
-        store.put(csvData, "testCSV");
-
-        // データを取得して表示
-        store.get("testCSV").onsuccess = (event) => {
-            const retrievedCSV = event.target.result;
-            const output = document.getElementById("output");
-            output.textContent = retrievedCSV;
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName); // オブジェクトストアの作成
+                console.log("ObjectStore created.");
+            }
         };
-    };
 
-    request.onerror = (event) => {
-        console.error("IndexedDBエラー:", event.target.error);
-    };
+        request.onsuccess = (event) => {
+            console.log("Database opened successfully.");
+            const db = event.target.result;
+
+            // データを保存
+            const transaction = db.transaction(storeName, "readwrite");
+            const store = transaction.objectStore(storeName);
+            store.put(csvData, "testCSV");
+
+            // データを取得して表示
+            const getRequest = store.get("testCSV");
+            getRequest.onsuccess = (event) => {
+                const retrievedCSV = event.target.result;
+                const output = document.getElementById("output");
+                output.textContent = retrievedCSV || "データが見つかりませんでした。";
+                console.log("Data retrieved:", retrievedCSV);
+            };
+
+            getRequest.onerror = (event) => {
+                console.error("データ取得エラー:", event.target.error);
+            };
+        };
+
+        request.onerror = (event) => {
+            const errorOutput = document.getElementById("output");
+            errorOutput.textContent = "IndexedDBエラー: " + event.target.error;
+            console.error("IndexedDBエラー:", event.target.error);
+        };
+    })();
 </script>
 
 <div>
     <h3>IndexedDBのテスト結果:</h3>
     <pre id="output">読み込み中...</pre>
 </div>
+
 """
 
 # Streamlitアプリに埋め込む
