@@ -321,9 +321,6 @@ indexeddb_js = """
 st.components.v1.html(indexeddb_js)
 
 
-# Streamlit に JavaScript を埋め込む
-st.components.v1.html(indexeddb_js)
-
 
 
 # ジャンルと色の定義（簡易カレンダー用）
