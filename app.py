@@ -237,22 +237,61 @@ def save_if_needed():
 import streamlit.components.v1 as components
 
 # JavaScriptコードを埋め込む
-javascript_test = """
+indexeddb_test = """
 <script>
-    document.addEventListener('DOMContentLoaded', (event) => {
+    // IndexedDBの初期化
+    const dbName = "TestDB";
+    const storeName = "TestStore";
+
+    // データベースを開く/作成する
+    const request = indexedDB.open(dbName, 1);
+
+    request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName);
+        }
+    };
+
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+
+        // データを保存する
+        const tx = db.transaction(storeName, "readwrite");
+        const store = tx.objectStore(storeName);
+        store.put("Hello, IndexedDB!", "testKey");
+
+        tx.oncomplete = () => {
+            // データを取得して表示する
+            const readTx = db.transaction(storeName, "readonly");
+            const readStore = readTx.objectStore(storeName);
+            const getRequest = readStore.get("testKey");
+
+            getRequest.onsuccess = (event) => {
+                const div = document.createElement('div');
+                div.textContent = "IndexedDBから取得した値: " + event.target.result;
+                div.style.color = 'green';
+                div.style.fontSize = '20px';
+                document.body.appendChild(div);
+            };
+        };
+    };
+
+    request.onerror = (event) => {
         const div = document.createElement('div');
-        div.textContent = '現在の日時: ' + new Date().toLocaleString();
-        div.style.color = 'blue';
+        div.textContent = "IndexedDBの初期化に失敗しました";
+        div.style.color = 'red';
         div.style.fontSize = '20px';
         document.body.appendChild(div);
-    });
+    };
 </script>
 """
 
-st.title("埋め込みJavaScriptのテスト")
-components.html(javascript_test, height=50)
+st.title("IndexedDBのテスト")
+components.html(indexeddb_test, height=100)
 
-st.write("上に現在の日時が表示されるか確認してください。")
+st.write("ブラウザに緑色のメッセージが表示されるか確認してください。")
+
 
 
 
