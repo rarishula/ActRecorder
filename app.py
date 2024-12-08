@@ -205,7 +205,16 @@ def authenticate_google_drive():
     credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
     return build('drive', 'v3', credentials=credentials)
 
-# Google Drive にファイルをアップロード
+
+以下はこの課題を解決したコードです：
+
+python
+コードをコピーする
+# ファイルIDを保存するセッション状態の初期化
+if "uploaded_file_ids" not in st.session_state:
+    st.session_state["uploaded_file_ids"] = {}
+
+# Google Drive でファイルをアップロード
 def upload_to_google_drive(file_name, file_path):
     service = authenticate_google_drive()
 
@@ -213,7 +222,6 @@ def upload_to_google_drive(file_name, file_path):
     media = MediaFileUpload(file_path, mimetype='text/csv')
 
     try:
-        # ファイルのアップロード
         uploaded_file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -221,25 +229,22 @@ def upload_to_google_drive(file_name, file_path):
         ).execute()
 
         file_id = uploaded_file.get('id')
+        st.session_state["uploaded_file_ids"][file_name] = file_id  # ファイルIDを保存
         print(f"Uploaded {file_name} to Google Drive. File ID: {file_id}")
-
-        # 自分のGoogleアカウントに自動共有
-        user_email = "k.iwahori.eps@gmail.com"  # 共有したいGoogleアカウントのメールアドレス
-        share_file_with_user(file_id, user_email)
 
         return file_id
     except Exception as e:
         print(f"Failed to upload {file_name}: {e}")
         raise
 
-# Google Drive ファイルを共有
+# 手動でファイルを共有する関数
 def share_file_with_user(file_id, user_email):
     service = authenticate_google_drive()
 
     permission = {
-        'type': 'user',  # ユーザーに共有
-        'role': 'writer',  # 必要に応じて 'reader' に変更
-        'emailAddress': user_email  # 引数として受け取るメールアドレス
+        'type': 'user',  # ユーザー共有
+        'role': 'writer',  # 書き込み可能
+        'emailAddress': user_email  # 共有するメールアドレス
     }
 
     try:
@@ -248,7 +253,7 @@ def share_file_with_user(file_id, user_email):
             body=permission,
             fields='id'
         ).execute()
-        print(f"File shared with {user_email}")
+        print(f"Shared file with {user_email}")
     except Exception as e:
         print(f"Failed to share file: {e}")
         raise
@@ -272,11 +277,19 @@ def save_calendars_to_drive():
     upload_to_google_drive(f"detailed_calendar_{current_date}.csv", detailed_file_path)
     upload_to_google_drive(f"health_calendar_{current_date}.csv", health_file_path)
 
-
-# ボタンで保存をトリガー
-if st.button("Google Drive にカレンダー形式で保存"):
+# 保存と共有のトリガーを分離
+if st.button("Google Drive に保存"):
     try:
-        save_calendars_to_drive()
+        save_calendars_to_drive()  # 保存関数を実行
         st.success("3つのカレンダーをGoogle Driveに保存しました！")
+    except Exception as e:
+        st.error(f"エラーが発生しました: {e}")
+
+if st.button("Google Drive で共有"):
+    try:
+        user_email = "k.iwahori.eps@gmail.com"
+        for file_name, file_id in st.session_state["uploaded_file_ids"].items():
+            share_file_with_user(file_id, user_email)
+        st.success(f"Google Drive 上のファイルを {user_email} に共有しました！")
     except Exception as e:
         st.error(f"エラーが発生しました: {e}")
