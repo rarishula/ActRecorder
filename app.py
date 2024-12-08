@@ -314,8 +314,9 @@ def save_if_needed():
         save_calendars_to_drive()  # 保存処理
         update_last_saved_state()  # スナップショットを更新
         st.success("変更を検知し、自動保存しました！")
+
     else:
-        st.write("変更は検出されませんでした。")
+        print(f"[INFO] リフレッシュカウント: {count}")  
 
 
 # 10秒ごとにリフレッシュ
