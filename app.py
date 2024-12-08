@@ -233,6 +233,25 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
+# Service Worker 登録用の JavaScript を HTML として定義
+service_worker_html = """
+<script>
+    // Service Worker の登録
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+        .then(function(registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+        }).catch(function(error) {
+            console.error('Service Worker registration failed:', error);
+        });
+    }
+</script>
+"""
+
+# Streamlit アプリに Service Worker を埋め込む
+st.components.v1.html(service_worker_html)
+
+
 # ジャンルと色の定義（簡易カレンダー用）
 genres = [
     "仕事", "勉強", "ゲーム(練習)", "ソシャゲ", "ゲーム(その他)",
