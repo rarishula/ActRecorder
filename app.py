@@ -197,6 +197,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 import pandas as pd
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 
 # Google Drive API 認証
 def authenticate_google_drive():
@@ -290,3 +291,11 @@ if st.button("Google Drive で共有"):
         st.success(f"Google Drive 上のファイルを {user_email} に共有しました！")
     except Exception as e:
         st.error(f"エラーが発生しました: {e}")
+
+# 自動リフレッシュ設定
+refresh_interval = 10 * 1000  # 10秒（ミリ秒単位）
+count = st_autorefresh(interval=refresh_interval, limit=None, key="auto_refresh")
+
+# オートリフレッシュ直前に保存を実行
+if count > 0:  # 初回リフレッシュを避けるため
+    save_calendars_to_drive()
