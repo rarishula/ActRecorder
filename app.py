@@ -3,6 +3,218 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import io
+import json
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+import pandas as pd
+import streamlit as st
+from streamlit_autorefresh import st_autorefresh
+from googleapiclient.http import MediaIoBaseDownload
+import copy
+
+
+# ヘルパー関数：30分間隔の時刻リストを作成
+def get_time_options():
+    from datetime import time as dt_time  # 明示的に datetime.time を dt_time に変更
+    return [dt_time(hour, minute).strftime("%H:%M") for hour in range(24) for minute in (0, 30)]
+
+def generate_simple_calendar(selected_dates, data_session):
+    return pd.DataFrame(
+        {date: data_session[date]["ジャンル"] for date in selected_dates},
+        index=[f"{hour}:00" for hour in range(24)]
+    )
+
+def generate_detailed_calendar(selected_dates, data_session):
+    detailed_calendar_data = []
+    for date in selected_dates:
+        day_data = data_session[date]
+        day_data = day_data.rename(
+            columns={
+                "行動": f"{date} 行動",
+                "理由": f"{date} 理由",
+                "結果": f"{date} 結果"
+            }
+        )
+        detailed_calendar_data.append(day_data[[f"{date} 行動", f"{date} 理由", f"{date} 結果"]])
+    return pd.concat(detailed_calendar_data, axis=1)
+
+def generate_health_calendar(dates_range, health_session):
+    health_calendar = pd.DataFrame(columns=dates_range, index=[
+        "朝食", "昼食", "夕食", "間食", "服薬", "運動",
+        "体調(肉体)", "体調(精神)", "体調(頭脳)"
+    ])
+    for date in dates_range:
+        if date in health_session:
+            health_entry = health_session[date]
+            health_calendar.loc["朝食", date] = health_entry["食事"]["朝食"]
+            health_calendar.loc["昼食", date] = health_entry["食事"]["昼食"]
+            health_calendar.loc["夕食", date] = health_entry["食事"]["夕食"]
+            health_calendar.loc["間食", date] = health_entry["食事"]["間食"]
+            health_calendar.loc["服薬", date] = "\n".join(
+                [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["服薬"]]
+            )
+            health_calendar.loc["運動", date] = "\n".join(
+                [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["運動"]]
+            )
+            health_calendar.loc["体調(肉体)", date] = health_entry["体調"]["肉体"]
+            health_calendar.loc["体調(精神)", date] = health_entry["体調"]["精神"]
+            health_calendar.loc["体調(頭脳)", date] = health_entry["体調"]["頭脳"]
+    return health_calendar
+
+# Google Drive API 認証
+def authenticate_google_drive():
+    service_account_info = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT_KEY"])
+    SCOPES = ['https://www.googleapis.com/auth/drive.file']
+    credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    return build('drive', 'v3', credentials=credentials)
+
+
+# Google Drive から CSV を pandas の DataFrame としてダウンロードする
+def download_csv_as_dataframe(service, file_id):
+    """
+    Google Drive から CSV ファイルをダウンロードして pandas のデータフレームとして返す関数。
+    """
+    request = service.files().get_media(fileId=file_id)
+    file_data = io.BytesIO()
+    downloader = MediaIoBaseDownload(file_data, request)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    file_data.seek(0)
+    return pd.read_csv(file_data)
+
+# Google Drive 内の最新ファイルを探す関数
+def get_latest_file(service, prefix):
+    """
+    Google Drive 上で指定された prefix を含む最新のファイルを検索する。
+    """
+    query = f"name contains '{prefix}'"
+    results = service.files().list(
+        q=query,
+        spaces="drive",
+        fields="files(id, name, modifiedTime)",
+        orderBy="modifiedTime desc"
+    ).execute()
+    files = results.get("files", [])
+    if not files:
+        raise FileNotFoundError(f"Google Drive 内に '{prefix}' を含むファイルが見つかりません。")
+    return files[0]  # 最新のファイルを返す
+
+
+# 初回読み込み処理
+def load_data_from_drive():
+    try:
+        service = authenticate_google_drive()
+        # 各ファイルを特定し、読み込む
+        health_file = get_latest_file(service, "health_calendar")
+        detailed_file = get_latest_file(service, "detailed_calendar")
+        simple_file = get_latest_file(service, "simple_calendar")
+
+        # DataFrame に変換
+        health_df = download_csv_as_dataframe(service, health_file['id'])
+        detailed_df = download_csv_as_dataframe(service, detailed_file['id'])
+        simple_df = download_csv_as_dataframe(service, simple_file['id'])
+
+        # session_state に反映
+        st.session_state["health_data"] = health_df
+        st.session_state["detailed_data"] = detailed_df
+        st.session_state["simple_data"] = simple_df
+
+        st.success("Google Drive からデータを読み込みました！")
+    except Exception as e:
+        st.error(f"データの読み込み中にエラーが発生しました: {e}")
+
+# Google Drive でファイルをアップロード
+def upload_to_google_drive(file_name, file_path):
+    service = authenticate_google_drive()
+
+    file_metadata = {'name': file_name}
+    media = MediaFileUpload(file_path, mimetype='text/csv')
+
+    try:
+        uploaded_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+
+        file_id = uploaded_file.get('id')
+        st.session_state["uploaded_file_ids"][file_name] = file_id  # ファイルIDを保存
+        print(f"Uploaded {file_name} to Google Drive. File ID: {file_id}")
+
+        return file_id
+    except Exception as e:
+        print(f"Failed to upload {file_name}: {e}")
+        raise
+
+# 手動でファイルを共有する関数
+def share_file_with_user(file_id, user_email):
+    service = authenticate_google_drive()
+
+    permission = {
+        'type': 'user',  # ユーザー共有
+        'role': 'writer',  # 書き込み可能
+        'emailAddress': user_email  # 共有するメールアドレス
+    }
+
+    try:
+        service.permissions().create(
+            fileId=file_id,
+            body=permission,
+            fields='id'
+        ).execute()
+        print(f"Shared file with {user_email}")
+    except Exception as e:
+        print(f"Failed to share file: {e}")
+        raise
+
+def save_calendars_to_drive():
+    # 現在の日付を取得
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    
+    # ファイル名に日付を追加
+    simple_file_path = f"simple_calendar_{current_date}.csv"
+    detailed_file_path = f"detailed_calendar_{current_date}.csv"
+    health_file_path = f"health_calendar_{current_date}.csv"
+
+    # ローカルに保存
+    simple_calendar.to_csv(simple_file_path, index=True)
+    detailed_calendar.to_csv(detailed_file_path, index=True)
+    health_calendar.to_csv(health_file_path, index=True)
+
+    # Google Drive にアップロード
+    upload_to_google_drive(f"simple_calendar_{current_date}.csv", simple_file_path)
+    upload_to_google_drive(f"detailed_calendar_{current_date}.csv", detailed_file_path)
+    upload_to_google_drive(f"health_calendar_{current_date}.csv", health_file_path)
+
+def has_changes():
+    """監視対象のデータが変更されたかを判定"""
+    # データフレームを文字列に変換して比較
+    current_data_str = {k: v.to_csv() for k, v in st.session_state["data"].items()}
+    last_saved_data_str = {k: v.to_csv() for k, v in st.session_state["last_saved_state"]["data"].items()}
+
+    current_health_str = {k: str(v) for k, v in st.session_state["health"].items()}
+    last_saved_health_str = {k: str(v) for k, v in st.session_state["last_saved_state"]["health"].items()}
+
+    return current_data_str != last_saved_data_str or current_health_str != last_saved_health_str
+
+def update_last_saved_state():
+    """最後に保存された状態を更新"""
+    st.session_state["last_saved_state"] = {
+        "data": {k: v.copy() for k, v in st.session_state["data"].items()},
+        "health": copy.deepcopy(st.session_state["health"]),
+    }
+
+
+def save_if_needed():
+    """変更があれば保存を実行"""
+    if has_changes():
+        save_calendars_to_drive()  # 保存処理
+        update_last_saved_state()  # スナップショットを更新
+        st.success("変更を検知し、自動保存しました！")
+    else:
+        st.write("変更は検出されませんでした。")
 
 # ジャンルと色の定義（簡易カレンダー用）
 genres = [
@@ -69,10 +281,7 @@ for time in data.index:
 if "health" not in st.session_state:
     st.session_state["health"] = {}
 
-# ヘルパー関数：30分間隔の時刻リストを作成
-def get_time_options():
-    from datetime import time as dt_time  # 明示的に datetime.time を dt_time に変更
-    return [dt_time(hour, minute).strftime("%H:%M") for hour in range(24) for minute in (0, 30)]
+
 
 # 健康データ初期化
 if selected_date_str not in st.session_state["health"]:
@@ -132,48 +341,6 @@ health_data["体調"]["頭脳"] = col3.text_input(
     "頭脳の状態", value=health_data["体調"]["頭脳"], key="condition_brain"
 )
 
-def generate_simple_calendar(selected_dates, data_session):
-    return pd.DataFrame(
-        {date: data_session[date]["ジャンル"] for date in selected_dates},
-        index=[f"{hour}:00" for hour in range(24)]
-    )
-
-def generate_detailed_calendar(selected_dates, data_session):
-    detailed_calendar_data = []
-    for date in selected_dates:
-        day_data = data_session[date]
-        day_data = day_data.rename(
-            columns={
-                "行動": f"{date} 行動",
-                "理由": f"{date} 理由",
-                "結果": f"{date} 結果"
-            }
-        )
-        detailed_calendar_data.append(day_data[[f"{date} 行動", f"{date} 理由", f"{date} 結果"]])
-    return pd.concat(detailed_calendar_data, axis=1)
-
-def generate_health_calendar(dates_range, health_session):
-    health_calendar = pd.DataFrame(columns=dates_range, index=[
-        "朝食", "昼食", "夕食", "間食", "服薬", "運動",
-        "体調(肉体)", "体調(精神)", "体調(頭脳)"
-    ])
-    for date in dates_range:
-        if date in health_session:
-            health_entry = health_session[date]
-            health_calendar.loc["朝食", date] = health_entry["食事"]["朝食"]
-            health_calendar.loc["昼食", date] = health_entry["食事"]["昼食"]
-            health_calendar.loc["夕食", date] = health_entry["食事"]["夕食"]
-            health_calendar.loc["間食", date] = health_entry["食事"]["間食"]
-            health_calendar.loc["服薬", date] = "\n".join(
-                [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["服薬"]]
-            )
-            health_calendar.loc["運動", date] = "\n".join(
-                [f"{entry['種類']} ({entry['時刻']})" for entry in health_entry["運動"]]
-            )
-            health_calendar.loc["体調(肉体)", date] = health_entry["体調"]["肉体"]
-            health_calendar.loc["体調(精神)", date] = health_entry["体調"]["精神"]
-            health_calendar.loc["体調(頭脳)", date] = health_entry["体調"]["頭脳"]
-    return health_calendar
 
 # カレンダー生成
 simple_calendar = generate_simple_calendar(selected_dates, st.session_state["data"])
@@ -189,81 +356,6 @@ st.dataframe(detailed_calendar)
 
 st.write("### 健康カレンダー")
 st.dataframe(health_calendar)
-
-
-
-import json
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-import pandas as pd
-import streamlit as st
-from streamlit_autorefresh import st_autorefresh
-from googleapiclient.http import MediaIoBaseDownload
-
-
-# Google Drive API 認証
-def authenticate_google_drive():
-    service_account_info = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT_KEY"])
-    SCOPES = ['https://www.googleapis.com/auth/drive.file']
-    credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
-    return build('drive', 'v3', credentials=credentials)
-
-
-# Google Drive から CSV を pandas の DataFrame としてダウンロードする
-def download_csv_as_dataframe(service, file_id):
-    """
-    Google Drive から CSV ファイルをダウンロードして pandas のデータフレームとして返す関数。
-    """
-    request = service.files().get_media(fileId=file_id)
-    file_data = io.BytesIO()
-    downloader = MediaIoBaseDownload(file_data, request)
-    done = False
-    while not done:
-        _, done = downloader.next_chunk()
-    file_data.seek(0)
-    return pd.read_csv(file_data)
-
-# Google Drive 内の最新ファイルを探す関数
-def get_latest_file(service, prefix):
-    """
-    Google Drive 上で指定された prefix を含む最新のファイルを検索する。
-    """
-    query = f"name contains '{prefix}'"
-    results = service.files().list(
-        q=query,
-        spaces="drive",
-        fields="files(id, name, modifiedTime)",
-        orderBy="modifiedTime desc"
-    ).execute()
-    files = results.get("files", [])
-    if not files:
-        raise FileNotFoundError(f"Google Drive 内に '{prefix}' を含むファイルが見つかりません。")
-    return files[0]  # 最新のファイルを返す
-
-
-# 初回読み込み処理
-def load_data_from_drive():
-    try:
-        service = authenticate_google_drive()
-        # 各ファイルを特定し、読み込む
-        health_file = get_latest_file(service, "health_calendar")
-        detailed_file = get_latest_file(service, "detailed_calendar")
-        simple_file = get_latest_file(service, "simple_calendar")
-
-        # DataFrame に変換
-        health_df = download_csv_as_dataframe(service, health_file['id'])
-        detailed_df = download_csv_as_dataframe(service, detailed_file['id'])
-        simple_df = download_csv_as_dataframe(service, simple_file['id'])
-
-        # session_state に反映
-        st.session_state["health_data"] = health_df
-        st.session_state["detailed_data"] = detailed_df
-        st.session_state["simple_data"] = simple_df
-
-        st.success("Google Drive からデータを読み込みました！")
-    except Exception as e:
-        st.error(f"データの読み込み中にエラーが発生しました: {e}")
 
 # 初回のみデータをロード
 if "data_loaded" not in st.session_state:
@@ -285,68 +377,7 @@ st.dataframe(st.session_state.get("simple_data", pd.DataFrame()))
 if "uploaded_file_ids" not in st.session_state:
     st.session_state["uploaded_file_ids"] = {}
 
-# Google Drive でファイルをアップロード
-def upload_to_google_drive(file_name, file_path):
-    service = authenticate_google_drive()
 
-    file_metadata = {'name': file_name}
-    media = MediaFileUpload(file_path, mimetype='text/csv')
-
-    try:
-        uploaded_file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id'
-        ).execute()
-
-        file_id = uploaded_file.get('id')
-        st.session_state["uploaded_file_ids"][file_name] = file_id  # ファイルIDを保存
-        print(f"Uploaded {file_name} to Google Drive. File ID: {file_id}")
-
-        return file_id
-    except Exception as e:
-        print(f"Failed to upload {file_name}: {e}")
-        raise
-
-# 手動でファイルを共有する関数
-def share_file_with_user(file_id, user_email):
-    service = authenticate_google_drive()
-
-    permission = {
-        'type': 'user',  # ユーザー共有
-        'role': 'writer',  # 書き込み可能
-        'emailAddress': user_email  # 共有するメールアドレス
-    }
-
-    try:
-        service.permissions().create(
-            fileId=file_id,
-            body=permission,
-            fields='id'
-        ).execute()
-        print(f"Shared file with {user_email}")
-    except Exception as e:
-        print(f"Failed to share file: {e}")
-        raise
-
-def save_calendars_to_drive():
-    # 現在の日付を取得
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    
-    # ファイル名に日付を追加
-    simple_file_path = f"simple_calendar_{current_date}.csv"
-    detailed_file_path = f"detailed_calendar_{current_date}.csv"
-    health_file_path = f"health_calendar_{current_date}.csv"
-
-    # ローカルに保存
-    simple_calendar.to_csv(simple_file_path, index=True)
-    detailed_calendar.to_csv(detailed_file_path, index=True)
-    health_calendar.to_csv(health_file_path, index=True)
-
-    # Google Drive にアップロード
-    upload_to_google_drive(f"simple_calendar_{current_date}.csv", simple_file_path)
-    upload_to_google_drive(f"detailed_calendar_{current_date}.csv", detailed_file_path)
-    upload_to_google_drive(f"health_calendar_{current_date}.csv", health_file_path)
 
 # 保存と共有のトリガーを分離
 if st.button("Google Drive に保存"):
@@ -366,7 +397,7 @@ if st.button("Google Drive で共有"):
         st.error(f"エラーが発生しました: {e}")
 
 
-import copy
+
 
 # 初期化: 最後に保存された状態を記録
 if "last_saved_state" not in st.session_state:
@@ -375,33 +406,6 @@ if "last_saved_state" not in st.session_state:
         "health": copy.deepcopy(st.session_state["health"]),
     }
 
-def has_changes():
-    """監視対象のデータが変更されたかを判定"""
-    # データフレームを文字列に変換して比較
-    current_data_str = {k: v.to_csv() for k, v in st.session_state["data"].items()}
-    last_saved_data_str = {k: v.to_csv() for k, v in st.session_state["last_saved_state"]["data"].items()}
-
-    current_health_str = {k: str(v) for k, v in st.session_state["health"].items()}
-    last_saved_health_str = {k: str(v) for k, v in st.session_state["last_saved_state"]["health"].items()}
-
-    return current_data_str != last_saved_data_str or current_health_str != last_saved_health_str
-
-def update_last_saved_state():
-    """最後に保存された状態を更新"""
-    st.session_state["last_saved_state"] = {
-        "data": {k: v.copy() for k, v in st.session_state["data"].items()},
-        "health": copy.deepcopy(st.session_state["health"]),
-    }
-
-
-def save_if_needed():
-    """変更があれば保存を実行"""
-    if has_changes():
-        save_calendars_to_drive()  # 保存処理
-        update_last_saved_state()  # スナップショットを更新
-        st.success("変更を検知し、自動保存しました！")
-    else:
-        st.write("変更は検出されませんでした。")
 
 # 保存を10秒ごとにチェック
 save_if_needed()
