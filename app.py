@@ -234,46 +234,26 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
+import streamlit.components.v1 as components
 
-
-# 静的ファイルを提供する関数
-def serve_static_file(file_name):
-    static_dir = Path(__file__).parent / "static"
-    file_path = static_dir / file_name
-    if file_path.exists():
-        mime_type, _ = mimetypes.guess_type(file_path)
-        with open(file_path, "rb") as file:
-            return file.read(), mime_type
-    return None, None
-
-# 静的ファイルの提供を試みる
-query_params = st.experimental_get_query_params()
-if "static_file" in query_params:
-    requested_file = query_params["static_file"][0]
-    content, mime_type = serve_static_file(requested_file)
-    if content:
-        st.write(f"Serving static file: {requested_file}")
-        st.experimental_set_query_params()  # Reset query params to avoid reloading
-        st.markdown(
-            f'<script>window.location = "data:{mime_type};base64,{content.decode("utf-8")}"</script>',
-            unsafe_allow_html=True,
-        )
-
-service_worker_registration = """
+# JavaScriptコードを埋め込む
+javascript_test = """
 <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('https://rarishula-act-record.streamlit.app/static/service-worker.js')
-        .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-        }).catch(function(error) {
-            console.error('Service Worker registration failed:', error);
-        });
-    }
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const div = document.createElement('div');
+        div.textContent = '現在の日時: ' + new Date().toLocaleString();
+        div.style.color = 'blue';
+        div.style.fontSize = '20px';
+        document.body.appendChild(div);
+    });
 </script>
 """
 
-# HTML として埋め込み
-st.components.v1.html(service_worker_registration, height=0)
+st.title("埋め込みJavaScriptのテスト")
+components.html(javascript_test, height=50)
+
+st.write("上に現在の日時が表示されるか確認してください。")
+
 
 
 
