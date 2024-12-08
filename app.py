@@ -199,6 +199,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
+
 # Google Drive API 認証
 def authenticate_google_drive():
     service_account_info = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT_KEY"])
@@ -292,10 +293,41 @@ if st.button("Google Drive で共有"):
     except Exception as e:
         st.error(f"エラーが発生しました: {e}")
 
-# 自動リフレッシュ設定
-refresh_interval = 10 * 1000  # 10秒（ミリ秒単位）
-count = st_autorefresh(interval=refresh_interval, limit=None, key="auto_refresh")
 
-# オートリフレッシュ直前に保存を実行
-if count > 0:  # 初回リフレッシュを避けるため
-    save_calendars_to_drive()
+# 自動保存に関する設定
+
+import copy
+
+# 初期化時に最後に保存された状態を記録
+if "last_saved_state" not in st.session_state:
+    st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)
+
+def has_changes():
+    # 現在のセッション状態と最後に保存した状態を比較
+    return st.session_state != st.session_state["last_saved_state"]
+
+def update_last_saved_state():
+    st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)
+
+def save_if_needed():
+    if has_changes():
+        save_calendars_to_drive()  # 保存処理
+        update_last_saved_state()  # スナップショットを更新
+        st.success("変更を検知し、自動保存しました！")
+
+if "is_first_refresh" not in st.session_state:
+    st.session_state["is_first_refresh"] = True  # 初回リフレッシュを判定
+    st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)  # 初期状態を保存
+
+
+# リフレッシュをトリガー（10秒ごと）
+count = st_autorefresh(interval=10 * 1000, key="refresh")
+
+# リフレッシュ時の処理
+if st.session_state["is_first_refresh"]:
+    # 初回リフレッシュをスキップ
+    st.session_state["is_first_refresh"] = False
+else:
+    # 通常の保存処理を実行
+    save_if_needed()
+
