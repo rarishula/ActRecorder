@@ -242,15 +242,16 @@ indexeddb_js = """
 <script>
 const dbName = "TestDB";
 const storeName = "KeyValueStore";
-const dbVersion = 1; // 必ず統一するバージョン
 
+// データベースを開く/作成する関数
 function openDatabase(callback) {
-    const request = indexedDB.open(dbName, dbVersion);
+    const request = indexedDB.open(dbName);
 
     request.onupgradeneeded = (event) => {
         const db = event.target.result;
         if (!db.objectStoreNames.contains(storeName)) {
             db.createObjectStore(storeName);
+            console.log(`ObjectStore '${storeName}' created.`);
         }
     };
 
@@ -260,22 +261,25 @@ function openDatabase(callback) {
     };
 
     request.onerror = (event) => {
-        if (event.target.error.name === "VersionError") {
+        const error = event.target.error;
+        if (error.name === "VersionError") {
+            // バージョンエラーが発生した場合、データベースを削除して再試行
             const deleteRequest = indexedDB.deleteDatabase(dbName);
             deleteRequest.onsuccess = () => {
-                console.log("データベースを削除しました。再作成します...");
-                openDatabase(callback);  // 再試行
+                console.log(`Database '${dbName}' deleted due to version error. Retrying...`);
+                openDatabase(callback);
             };
-            deleteRequest.onerror = () => {
-                callback(event.target.error, null);
+            deleteRequest.onerror = (deleteEvent) => {
+                callback(deleteEvent.target.error, null);
             };
         } else {
-            callback(event.target.error, null);
+            callback(error, null);
         }
     };
 }
 
-function saveTestData() {
+// データを保存する関数
+function saveData() {
     openDatabase((error, db) => {
         if (error) {
             document.getElementById("message").textContent = "保存エラー: " + error.message;
@@ -284,32 +288,35 @@ function saveTestData() {
 
         const transaction = db.transaction(storeName, "readwrite");
         const store = transaction.objectStore(storeName);
-        store.put("12345", "test_data");
-        document.getElementById("message").textContent = "データを保存しました";
+
+        const getRequest = store.get("test_data");
+        getRequest.onsuccess = () => {
+            const existingData = getRequest.result;
+            const messageElement = document.getElementById("message");
+
+            if (existingData !== undefined) {
+                messageElement.textContent = "上書きしました";
+            } else {
+                messageElement.textContent = "保存しました";
+            }
+
+            const putRequest = store.put("12345", "test_data");
+            putRequest.onsuccess = () => {
+                console.log("Data saved successfully.");
+            };
+            putRequest.onerror = (event) => {
+                console.error("Error saving data:", event.target.error);
+            };
+        };
+
+        getRequest.onerror = (event) => {
+            console.error("Error checking existing data:", event.target.error);
+        };
     });
 }
 
-function loadTestData() {
-    openDatabase((error, db) => {
-        if (error) {
-            document.getElementById("message").textContent = "読み込みエラー: " + error.message;
-            return;
-        }
-
-        const transaction = db.transaction(storeName, "readonly");
-        const store = transaction.objectStore(storeName);
-        const request = store.get("test_data");
-
-        request.onsuccess = () => {
-            const data = request.result || "データが見つかりません";
-            document.getElementById("message").textContent = "読み込み結果: " + data;
-        };
-
-        request.onerror = (event) => {
-            document.getElementById("message").textContent = "読み込みエラー: " + event.target.error;
-        };
-    });
-}
+// ボタンのクリックイベントに関数を割り当て
+document.getElementById("saveButton").onclick = saveData;
 
 </script>
 <div>
