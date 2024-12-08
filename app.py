@@ -244,10 +244,9 @@ indexeddb_html = """
 const dbName = "TestDB";
 const storeName = "KeyValueStore";
 
-// データベースを開く/作成する
+// データベースを開く/作成する関数
 function openDatabase(callback) {
-    const request = indexedDB.open(dbName); // バージョンを指定しない
-
+    const request = indexedDB.open(dbName); // バージョン指定なし
     request.onupgradeneeded = (event) => {
         const db = event.target.result;
         if (!db.objectStoreNames.contains(storeName)) {
@@ -255,71 +254,71 @@ function openDatabase(callback) {
             console.log(`ObjectStore '${storeName}' created.`);
         }
     };
-
     request.onsuccess = (event) => {
         const db = event.target.result;
         callback(null, db);
     };
-
     request.onerror = (event) => {
-        console.error("Error opening database:", event.target.error);
         callback(event.target.error, null);
     };
 }
 
-// 保存ボタンの処理
-function saveData() {
+// データを保存する関数
+function saveToIndexedDB(key, value) {
     openDatabase((error, db) => {
         if (error) {
-            console.error("Error opening database:", error);
+            console.error("Database open error:", error);
             return;
         }
 
-        const transaction = db.transaction(storeName, "readwrite");
+        const transaction = db.transaction([storeName], "readwrite");
         const store = transaction.objectStore(storeName);
-        store.put("保存されたデータです！", "testKey");
 
-        transaction.oncomplete = () => {
-            document.getElementById("output").textContent = "データを保存しました！";
+        const request = store.put(value, key);
+        request.onsuccess = () => {
+            console.log("Data saved successfully!");
         };
-
-        transaction.onerror = (event) => {
+        request.onerror = (event) => {
             console.error("Error saving data:", event.target.error);
         };
     });
 }
 
-// 読み込みボタンの処理
-function loadData() {
+// 保存ボタンの動作
+document.getElementById("saveButton").onclick = () => {
+    const key = "testKey";
+    const value = "testValue";
+    saveToIndexedDB(key, value);
+};
+
+// データを読み込む関数
+function loadFromIndexedDB(key) {
     openDatabase((error, db) => {
         if (error) {
-            console.error("Error opening database:", error);
+            console.error("Database open error:", error);
             return;
         }
 
-        try {
-            const transaction = db.transaction(storeName, "readonly");
-            const store = transaction.objectStore(storeName);
-            const request = store.get("testKey");
+        const transaction = db.transaction([storeName], "readonly");
+        const store = transaction.objectStore(storeName);
 
-            request.onsuccess = (event) => {
-                const result = event.target.result;
-                if (result) {
-                    document.getElementById("output").textContent = "読み込んだデータ: " + result;
-                } else {
-                    document.getElementById("output").textContent = "データが見つかりませんでした。";
-                }
-            };
-
-            request.onerror = (event) => {
-                console.error("Error loading data:", event.target.error);
-            };
-        } catch (e) {
-            console.error("ObjectStore not found. Please save data first.");
-            document.getElementById("output").textContent = "データベースが初期化されていません！データを保存してください。";
-        }
+        const request = store.get(key);
+        request.onsuccess = (event) => {
+            const result = event.target.result;
+            console.log(result ? `Data loaded: ${result}` : "No data found.");
+        };
+        request.onerror = (event) => {
+            console.error("Error loading data:", event.target.error);
+        };
     });
 }
+
+// 読み込みボタンの動作
+document.getElementById("loadButton").onclick = () => {
+    const key = "testKey";
+    loadFromIndexedDB(key);
+};
+
 </script>
 
 <!-- ボタンと表示エリア -->
