@@ -239,61 +239,67 @@ def save_if_needed():
 # IndexedDBを使用するためのJavaScriptコード
 indexeddb_test_html = """
 <script>
-    const dbName = "TestDB";
-    const storeName = "CSVStore";
+const dbName = "TestDB";
+const storeName = "CSVStore";
+const dbVersion = 2; // 必要ならバージョンを上げる
 
-    function saveCSV() {
-        const csvData = `name,age,city\nJohn,25,New York\nAlice,30,Los Angeles\nBob,22,Chicago`;
+function saveCSV() {
+    const csvData = `name,age,city\nJohn,25,New York\nAlice,30,Los Angeles\nBob,22,Chicago`;
 
-        // データベースを開く
-        const request = indexedDB.open(dbName);
+    const request = indexedDB.open(dbName, dbVersion);
 
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName); // 必要に応じてストアを作成
-                console.log(`ObjectStore '${storeName}' created.`);
-            }
+    request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+
+        // オブジェクトストアを作成
+        if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName);
+            console.log(`ObjectStore '${storeName}' created.`);
+        }
+    };
+
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+
+        // トランザクションでデータを保存
+        const transaction = db.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        store.put(csvData, "testCSV");
+        console.log("Data saved successfully.");
+    };
+
+    request.onerror = (event) => {
+        console.error("Error saving data:", event.target.error);
+    };
+}
+
+function loadCSV() {
+    const request = indexedDB.open(dbName, dbVersion);
+
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+
+        // トランザクションでデータを取得
+        const transaction = db.transaction(storeName, "readonly");
+        const store = transaction.objectStore(storeName);
+        const getRequest = store.get("testCSV");
+
+        getRequest.onsuccess = (event) => {
+            const retrievedCSV = event.target.result;
+            const output = document.getElementById("output");
+            output.textContent = retrievedCSV || "No data found.";
+            console.log("Data loaded:", retrievedCSV);
         };
 
-        request.onsuccess = (event) => {
-            const db = event.target.result;
-            const transaction = db.transaction(storeName, "readwrite");
-            const store = transaction.objectStore(storeName);
-            store.put(csvData, "testCSV");
-            console.log("Data saved successfully.");
+        getRequest.onerror = (event) => {
+            console.error("Error loading data:", event.target.error);
         };
+    };
 
-        request.onerror = (event) => {
-            console.error("Error saving data:", event.target.error);
-        };
-    }
-
-    function loadCSV() {
-        const request = indexedDB.open(dbName);
-
-        request.onsuccess = (event) => {
-            const db = event.target.result;
-            const transaction = db.transaction(storeName, "readonly");
-            const store = transaction.objectStore(storeName);
-            const getRequest = store.get("testCSV");
-
-            getRequest.onsuccess = (event) => {
-                const output = document.getElementById("output");
-                const retrievedCSV = event.target.result;
-                output.textContent = retrievedCSV || "No data found.";
-                console.log("Data loaded:", retrievedCSV);
-            };
-
-            getRequest.onerror = (event) => {
-                console.error("Error loading data:", event.target.error);
-            };
-        };
-
-        request.onerror = (event) => {
-            console.error("Error opening database:", event.target.error);
-        };
-    }
+    request.onerror = (event) => {
+        console.error("Error opening database:", event.target.error);
+    };
+}
 </script>
 
 <div>
