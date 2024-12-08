@@ -250,8 +250,10 @@ indexeddb_js = """
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 if (!db.objectStoreNames.contains(storeName)) {
-                    db.createObjectStore(storeName);
+                    db.createObjectStore(storeName); // オブジェクトストアを作成
                     console.log(`ObjectStore '${storeName}' created.`);
+                } else {
+                    console.log(`ObjectStore '${storeName}' already exists.`);
                 }
             };
 
@@ -314,6 +316,10 @@ indexeddb_js = """
     <p id="message"></p>
 </div>
 """
+
+# Streamlit に JavaScript を埋め込む
+st.components.v1.html(indexeddb_js)
+
 
 # Streamlit に JavaScript を埋め込む
 st.components.v1.html(indexeddb_js)
