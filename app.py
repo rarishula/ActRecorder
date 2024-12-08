@@ -206,10 +206,7 @@ def authenticate_google_drive():
     return build('drive', 'v3', credentials=credentials)
 
 
-以下はこの課題を解決したコードです：
 
-python
-コードをコピーする
 # ファイルIDを保存するセッション状態の初期化
 if "uploaded_file_ids" not in st.session_state:
     st.session_state["uploaded_file_ids"] = {}
