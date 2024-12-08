@@ -258,7 +258,7 @@ indexeddb_js = """
         request.onsuccess = (event) => {
             const db = event.target.result;
 
-            // オブジェクトストアが存在しない場合の確認
+            // オブジェクトストアの存在確認
             if (!db.objectStoreNames.contains(storeName)) {
                 console.error(`ObjectStore '${storeName}' not found.`);
                 callback(new Error(`ObjectStore '${storeName}' not found.`), null);
@@ -276,7 +276,7 @@ indexeddb_js = """
     function saveToIndexedDB(key, value) {
         openDatabase((error, db) => {
             if (error) {
-                document.getElementById("message").textContent = "保存エラー: " + error;
+                document.getElementById("message").textContent = "保存エラー: " + error.message;
                 return;
             }
 
