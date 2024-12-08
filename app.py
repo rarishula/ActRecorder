@@ -245,7 +245,9 @@ indexeddb_test_html = """
     // データを保存する関数
     function saveCSV() {
         const csvData = `name,age,city\nJohn,25,New York\nAlice,30,Los Angeles\nBob,22,Chicago`;
-        const request = indexedDB.open(dbName, 1);
+
+        // データベースを開く
+        const request = indexedDB.open(dbName);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
@@ -270,7 +272,7 @@ indexeddb_test_html = """
 
     // データをロードする関数
     function loadCSV() {
-        const request = indexedDB.open(dbName, 1);
+        const request = indexedDB.open(dbName);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
@@ -310,6 +312,7 @@ indexeddb_test_html = """
     <h3>IndexedDB Test:</h3>
     <pre id="output">No data loaded.</pre>
 </div>
+
 
 """
 
