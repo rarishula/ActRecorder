@@ -240,76 +240,83 @@ import streamlit as st
 # IndexedDB のテスト用 JavaScript
 indexeddb_js = """
 <script>
-    (function() {
-        const dbName = "TestDB";
-        const storeName = "KeyValueStore";
+(function() {
+    const dbName = "TestDB";
+    const storeName = "KeyValueStore";
 
-        function openDatabase(callback) {
-            const request = indexedDB.open(dbName, 1);
+    function openDatabase(callback) {
+        const request = indexedDB.open(dbName, 1);
 
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains(storeName)) {
-                    db.createObjectStore(storeName); // オブジェクトストアを作成
-                    console.log(`ObjectStore '${storeName}' created.`);
-                } else {
-                    console.log(`ObjectStore '${storeName}' already exists.`);
-                }
-            };
-
-            request.onsuccess = (event) => {
-                const db = event.target.result;
-                callback(null, db);
-            };
-
-            request.onerror = (event) => {
-                callback(event.target.error, null);
-            };
-        }
-
-        function saveToIndexedDB(key, value) {
-            openDatabase((error, db) => {
-                if (error) {
-                    document.getElementById("message").textContent = "保存エラー: " + error;
-                    return;
-                }
-
-                const transaction = db.transaction(storeName, "readwrite");
-                const store = transaction.objectStore(storeName);
-
-                const getRequest = store.get(key);
-                getRequest.onsuccess = () => {
-                    const existingData = getRequest.result;
-                    const messageElement = document.getElementById("message");
-
-                    if (existingData !== undefined) {
-                        messageElement.textContent = "上書きしました";
-                    } else {
-                        messageElement.textContent = "保存しました";
-                    }
-
-                    const putRequest = store.put(value, key);
-                    putRequest.onsuccess = () => {
-                        console.log(`Data saved with key '${key}':`, value);
-                    };
-
-                    putRequest.onerror = (event) => {
-                        console.error("Error saving data:", event.target.error);
-                    };
-                };
-
-                getRequest.onerror = (event) => {
-                    console.error("Error checking existing data:", event.target.error);
-                };
-            });
-        }
-
-        window.saveTestData = function() {
-            const key = "test_data";
-            const value = "12345";
-            saveToIndexedDB(key, value);
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName);
+                console.log(`ObjectStore '${storeName}' created.`);
+            }
         };
-    })();
+
+        request.onsuccess = (event) => {
+            const db = event.target.result;
+
+            // オブジェクトストアが存在しない場合の確認
+            if (!db.objectStoreNames.contains(storeName)) {
+                console.error(`ObjectStore '${storeName}' not found.`);
+                callback(new Error(`ObjectStore '${storeName}' not found.`), null);
+                return;
+            }
+
+            callback(null, db);
+        };
+
+        request.onerror = (event) => {
+            callback(event.target.error, null);
+        };
+    }
+
+    function saveToIndexedDB(key, value) {
+        openDatabase((error, db) => {
+            if (error) {
+                document.getElementById("message").textContent = "保存エラー: " + error;
+                return;
+            }
+
+            const transaction = db.transaction(storeName, "readwrite");
+            const store = transaction.objectStore(storeName);
+
+            const getRequest = store.get(key);
+            getRequest.onsuccess = () => {
+                const existingData = getRequest.result;
+                const messageElement = document.getElementById("message");
+
+                if (existingData !== undefined) {
+                    messageElement.textContent = "上書きしました";
+                } else {
+                    messageElement.textContent = "保存しました";
+                }
+
+                const putRequest = store.put(value, key);
+                putRequest.onsuccess = () => {
+                    console.log(`Data saved with key '${key}':`, value);
+                };
+
+                putRequest.onerror = (event) => {
+                    console.error("Error saving data:", event.target.error);
+                };
+            };
+
+            getRequest.onerror = (event) => {
+                console.error("Error checking existing data:", event.target.error);
+            };
+        });
+    }
+
+    window.saveTestData = function() {
+        const key = "test_data";
+        const value = "12345";
+        saveToIndexedDB(key, value);
+    };
+})();
+
 </script>
 <div>
     <button onclick="saveTestData()">保存</button>
