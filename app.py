@@ -240,12 +240,13 @@ import streamlit as st
 # IndexedDB のテスト用 JavaScript
 indexeddb_js = """
 <script>
-(function() {
+
+</(function() {
     const dbName = "TestDB";
     const storeName = "KeyValueStore";
 
     function openDatabase(callback) {
-        const request = indexedDB.open(dbName, 1);
+        const request = indexedDB.open(dbName);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
@@ -270,6 +271,10 @@ indexeddb_js = """
 
         request.onerror = (event) => {
             callback(event.target.error, null);
+        };
+
+        request.onblocked = () => {
+            console.error("Database open request is blocked.");
         };
     }
 
