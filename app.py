@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import io
 
 # ジャンルと色の定義（簡易カレンダー用）
 genres = [
@@ -207,6 +208,70 @@ def authenticate_google_drive():
     credentials = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
     return build('drive', 'v3', credentials=credentials)
 
+
+# Google Drive から CSV を pandas の DataFrame としてダウンロードする
+def download_csv_as_dataframe(service, file_id):
+    """
+    Google Drive から CSV ファイルをダウンロードして pandas のデータフレームとして返す関数。
+    """
+    request = service.files().get_media(fileId=file_id)
+    file_data = io.BytesIO()
+    downloader = MediaIoBaseDownload(file_data, request)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    file_data.seek(0)
+    return pd.read_csv(file_data)
+
+# Google Drive 内の最新ファイルを探す関数
+def get_latest_file(service, prefix):
+    """
+    Google Drive 上で指定された prefix にマッチする最新ファイルを検索する。
+    """
+    query = f"name contains '{prefix}'"
+    results = service.files().list(q=query, spaces="drive", fields="files(id, name, modifiedTime)", orderBy="modifiedTime desc").execute()
+    files = results.get("files", [])
+    if not files:
+        raise FileNotFoundError(f"Google Drive 内に '{prefix}' にマッチするファイルが見つかりません。")
+    return files[0]  # 最新のファイルを返す
+
+# 初回読み込み処理
+def load_data_from_drive():
+    try:
+        service = authenticate_google_drive()
+        # 各ファイルを特定し、読み込む
+        health_file = get_latest_file(service, "health_calendar")
+        detailed_file = get_latest_file(service, "detailed_calendar")
+        simple_file = get_latest_file(service, "simple_calendar")
+
+        # DataFrame に変換
+        health_df = download_csv_as_dataframe(service, health_file['id'])
+        detailed_df = download_csv_as_dataframe(service, detailed_file['id'])
+        simple_df = download_csv_as_dataframe(service, simple_file['id'])
+
+        # session_state に反映
+        st.session_state["health_data"] = health_df
+        st.session_state["detailed_data"] = detailed_df
+        st.session_state["simple_data"] = simple_df
+
+        st.success("Google Drive からデータを読み込みました！")
+    except Exception as e:
+        st.error(f"データの読み込み中にエラーが発生しました: {e}")
+
+# 初回のみデータをロード
+if "data_loaded" not in st.session_state:
+    load_data_from_drive()
+    st.session_state["data_loaded"] = True
+
+# 表示
+st.write("### 健康カレンダー")
+st.dataframe(st.session_state.get("health_data", pd.DataFrame()))
+
+st.write("### 詳細カレンダー")
+st.dataframe(st.session_state.get("detailed_data", pd.DataFrame()))
+
+st.write("### 簡易カレンダー")
+st.dataframe(st.session_state.get("simple_data", pd.DataFrame()))
 
 
 # ファイルIDを保存するセッション状態の初期化
