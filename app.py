@@ -235,6 +235,8 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
+import streamlit as st
+import streamlit.components.v1 as components
 
 # JavaScriptコードを埋め込む
 indexeddb_csv_test = """
@@ -259,7 +261,35 @@ Bob,22,Chicago`;
         }
     };
 
-   
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+
+        // データを保存
+        const transaction = db.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        store.put(csvData, "testCSV");
+
+        // データを取得して表示
+        store.get("testCSV").onsuccess = (event) => {
+            const retrievedCSV = event.target.result;
+            const output = document.getElementById("output");
+            output.textContent = retrievedCSV;
+        };
+    };
+
+    request.onerror = (event) => {
+        console.error("IndexedDBエラー:", event.target.error);
+    };
+</script>
+
+<div>
+    <h3>IndexedDBのテスト結果:</h3>
+    <pre id="output">読み込み中...</pre>
+</div>
+"""
+
+# Streamlitアプリに埋め込む
+components.html(indexeddb_csv_test, height=300)
 
 
 
