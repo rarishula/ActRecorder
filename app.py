@@ -241,91 +241,91 @@ import streamlit as st
 # JavaScriptコード（バージョンの動的処理を追加）
 indexeddb_html = """
 <script>
-const dbName = "TestDB";
-const storeName = "KeyValueStore";
+    const dbName = "TestDB";
+    const storeName = "KeyValueStore";
 
-// データベースを開く/作成する関数
-function openDatabase(callback) {
-    const request = indexedDB.open(dbName); // バージョン指定なし
-    request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName);
-            console.log(`ObjectStore '${storeName}' created.`);
-        }
-    };
-    request.onsuccess = (event) => {
-        const db = event.target.result;
-        callback(null, db);
-    };
-    request.onerror = (event) => {
-        callback(event.target.error, null);
-    };
-}
-
-// データを保存する関数
-function saveToIndexedDB(key, value) {
-    openDatabase((error, db) => {
-        if (error) {
-            console.error("Database open error:", error);
-            return;
-        }
-
-        const transaction = db.transaction([storeName], "readwrite");
-        const store = transaction.objectStore(storeName);
-
-        const request = store.put(value, key);
-        request.onsuccess = () => {
-            console.log("Data saved successfully!");
+    // データベースを開く/作成する関数
+    function openDatabase(callback) {
+        const request = indexedDB.open(dbName); // バージョン指定なし
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName);
+                console.log(`ObjectStore '${storeName}' created.`);
+            }
         };
-        request.onerror = (event) => {
-            console.error("Error saving data:", event.target.error);
-        };
-    });
-}
-
-// 保存ボタンの動作
-document.getElementById("saveButton").onclick = () => {
-    const key = "testKey";
-    const value = "testValue";
-    saveToIndexedDB(key, value);
-};
-
-// データを読み込む関数
-function loadFromIndexedDB(key) {
-    openDatabase((error, db) => {
-        if (error) {
-            console.error("Database open error:", error);
-            return;
-        }
-
-        const transaction = db.transaction([storeName], "readonly");
-        const store = transaction.objectStore(storeName);
-
-        const request = store.get(key);
         request.onsuccess = (event) => {
-            const result = event.target.result;
-            console.log(result ? `Data loaded: ${result}` : "No data found.");
+            const db = event.target.result;
+            callback(null, db);
         };
         request.onerror = (event) => {
-            console.error("Error loading data:", event.target.error);
+            callback(event.target.error, null);
         };
-    });
-}
+    }
 
-// 読み込みボタンの動作
-document.getElementById("loadButton").onclick = () => {
-    const key = "testKey";
-    loadFromIndexedDB(key);
-};
+    // データを保存する関数
+    function saveToIndexedDB(key, value) {
+        openDatabase((error, db) => {
+            if (error) {
+                console.error("Database open error:", error);
+                return;
+            }
 
+            const transaction = db.transaction([storeName], "readwrite");
+            const store = transaction.objectStore(storeName);
+
+            const request = store.put(value, key);
+            request.onsuccess = () => {
+                console.log("Data saved successfully!");
+            };
+            request.onerror = (event) => {
+                console.error("Error saving data:", event.target.error);
+            };
+        });
+    }
+
+    // データを読み込む関数
+    function loadFromIndexedDB(key) {
+        openDatabase((error, db) => {
+            if (error) {
+                console.error("Database open error:", error);
+                return;
+            }
+
+            const transaction = db.transaction([storeName], "readonly");
+            const store = transaction.objectStore(storeName);
+
+            const request = store.get(key);
+            request.onsuccess = (event) => {
+                const result = event.target.result;
+                console.log(result ? `Data loaded: ${result}` : "No data found.");
+                document.getElementById("output").textContent = result || "データが見つかりませんでした。";
+            };
+            request.onerror = (event) => {
+                console.error("Error loading data:", event.target.error);
+            };
+        });
+    }
+
+    // 保存ボタンの動作
+    document.getElementById("saveButton").onclick = () => {
+        const key = "testKey";
+        const value = "testValue";
+        saveToIndexedDB(key, value);
+    };
+
+    // 読み込みボタンの動作
+    document.getElementById("loadButton").onclick = () => {
+        const key = "testKey";
+        loadFromIndexedDB(key);
+    };
 </script>
 
-<!-- ボタンと表示エリア -->
 <div>
-    <button onclick="saveData()">保存</button>
-    <button onclick="loadData()">読み込み</button>
-    <pre id="output">結果がここに表示されます。</pre>
+    <button id="saveButton">保存</button>
+    <button id="loadButton">読み込み</button>
+    <h3>IndexedDBのテスト結果:</h3>
+    <pre id="output">読み込み中...</pre>
 </div>
 
 """
