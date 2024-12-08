@@ -303,8 +303,18 @@ if "last_saved_state" not in st.session_state:
     st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)
 
 def has_changes():
-    # 現在のセッション状態と最後に保存した状態を比較
-    return st.session_state != st.session_state["last_saved_state"]
+    # 除外するキーリストを定義
+    exclude_keys = ["last_saved_state", "autorefresh_count"]
+    
+    # 現在のセッション状態（除外キーを取り除く）
+    current_state = {k: v for k, v in st.session_state.items() if k not in exclude_keys}
+    
+    # 保存された最後の状態（除外キーを取り除く）
+    last_state = {k: v for k, v in st.session_state["last_saved_state"].items() if k not in exclude_keys}
+    
+    # 現在の状態と最後の保存状態を比較
+    return current_state != last_state
+
 
 def update_last_saved_state():
     st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)
