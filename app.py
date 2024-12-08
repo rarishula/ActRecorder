@@ -12,7 +12,7 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from googleapiclient.http import MediaIoBaseDownload
 import copy
-
+from pathlib import Path
 
 # ヘルパー関数：30分間隔の時刻リストを作成
 def get_time_options():
@@ -233,24 +233,39 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-# Service Worker 登録用の JavaScript を HTML として定義
-service_worker_html = """
-<script>
-    // Service Worker の登録
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js')
-        .then(function(registration) {
-            console.log('Service Worker registered with scope:', registration.scope);
-        }).catch(function(error) {
-            console.error('Service Worker registration failed:', error);
-        });
-    }
-</script>
-"""
+# サービスワーカーファイルの提供
+@st.cache_data
+def serve_service_worker():
+    file_path = Path("service-worker.js")
+    if file_path.exists():
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read()
+    return None
 
-# Streamlit アプリに Service Worker を埋め込む
-st.components.v1.html(service_worker_html)
+# サービスワーカーの設定
+service_worker_content = serve_service_worker()
 
+if service_worker_content:
+    st.markdown(
+        f"""
+        <script>
+            if ('serviceWorker' in navigator) {{
+                navigator.serviceWorker.register('/service-worker.js')
+                .then(function(registration) {{
+                    console.log('Service Worker registered with scope:', registration.scope);
+                }}).catch(function(error) {{
+                    console.error('Service Worker registration failed:', error);
+                }});
+            }}
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Service Worker のエンドポイントでファイルを提供
+    st.experimental_get("/service-worker.js", lambda: service_worker_content)
+else:
+    st.error("Service Worker ファイルが見つかりませんでした。")
 
 # ジャンルと色の定義（簡易カレンダー用）
 genres = [
