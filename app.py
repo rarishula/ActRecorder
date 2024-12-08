@@ -262,7 +262,7 @@ if "static_file" in query_params:
 service_worker_registration = """
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/service-worker.js')
+        navigator.serviceWorker.register('https://rarishula-act-record.streamlit.app/static/service-worker.js')
         .then(function(registration) {
             console.log('Service Worker registered with scope:', registration.scope);
         }).catch(function(error) {
