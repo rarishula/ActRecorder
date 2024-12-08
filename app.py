@@ -245,24 +245,41 @@ indexeddb_js = """
         const storeName = "KeyValueStore";
 
         function openDatabase(callback) {
-            const request = indexedDB.open(dbName, 1);
+            let dbVersion = undefined;
 
-            request.onupgradeneeded = (event) => {
+            // 既存のデータベースのバージョンを取得
+            const checkRequest = indexedDB.open(dbName);
+            checkRequest.onsuccess = (event) => {
                 const db = event.target.result;
-                if (!db.objectStoreNames.contains(storeName)) {
-                    db.createObjectStore(storeName);
-                    console.log(`ObjectStore '${storeName}' created.`);
-                }
+                dbVersion = db.version; // 既存のバージョンを取得
+                db.close();
+                proceedOpenDatabase();
             };
 
-            request.onsuccess = (event) => {
-                const db = event.target.result;
-                callback(null, db);
+            checkRequest.onerror = (event) => {
+                proceedOpenDatabase(); // データベースがない場合も進める
             };
 
-            request.onerror = (event) => {
-                callback(event.target.error, null);
-            };
+            function proceedOpenDatabase() {
+                const request = indexedDB.open(dbName, dbVersion || 1); // バージョンを指定
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.createObjectStore(storeName);
+                        console.log(`ObjectStore '${storeName}' created.`);
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    callback(null, db);
+                };
+
+                request.onerror = (event) => {
+                    callback(event.target.error, null);
+                };
+            }
         }
 
         function saveToIndexedDB(key, value) {
