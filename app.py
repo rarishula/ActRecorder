@@ -294,32 +294,31 @@ if st.button("Google Drive で共有"):
         st.error(f"エラーが発生しました: {e}")
 
 
-# 自動保存に関する設定
-
 import copy
 
-# 初期化時に最後に保存された状態を記録
+# 初期化: 最後に保存された状態を記録
 if "last_saved_state" not in st.session_state:
-    st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)
+    st.session_state["last_saved_state"] = {
+        "data": copy.deepcopy(st.session_state["data"]),
+        "health": copy.deepcopy(st.session_state["health"]),
+    }
 
 def has_changes():
-    # 除外するキーリストを定義
-    exclude_keys = ["last_saved_state", "autorefresh_count"]
-    
-    # 現在のセッション状態（除外キーを取り除く）
-    current_state = {k: v for k, v in st.session_state.items() if k not in exclude_keys}
-    
-    # 保存された最後の状態（除外キーを取り除く）
-    last_state = {k: v for k, v in st.session_state["last_saved_state"].items() if k not in exclude_keys}
-    
-    # 現在の状態と最後の保存状態を比較
-    return current_state != last_state
-
+    """監視対象のデータが変更されたかを判定"""
+    return (
+        st.session_state["data"] != st.session_state["last_saved_state"]["data"] or
+        st.session_state["health"] != st.session_state["last_saved_state"]["health"]
+    )
 
 def update_last_saved_state():
-    st.session_state["last_saved_state"] = copy.deepcopy(st.session_state)
+    """最後に保存された状態を更新"""
+    st.session_state["last_saved_state"] = {
+        "data": copy.deepcopy(st.session_state["data"]),
+        "health": copy.deepcopy(st.session_state["health"]),
+    }
 
 def save_if_needed():
+    """変更があれば保存を実行"""
     if has_changes():
         save_calendars_to_drive()  # 保存処理
         update_last_saved_state()  # スナップショットを更新
@@ -327,14 +326,6 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-
-# オートセーブ処理
+# 保存を10秒ごとにチェック
 save_if_needed()
-
-
-# 10秒ごとにリフレッシュ
 count = st_autorefresh(interval=10 * 1000, key="refresh")
-
-
-
-
