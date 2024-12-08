@@ -235,101 +235,88 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-
 import streamlit as st
 
-# JavaScriptコード（バージョンの動的処理を追加）
-indexeddb_html = """
+# IndexedDB のテスト用 JavaScript
+indexeddb_js = """
 <script>
-    const dbName = "TestDB";
-    const storeName = "KeyValueStore";
+    (function() {
+        const dbName = "TestDB";
+        const storeName = "KeyValueStore";
 
-    // IndexedDBのデータベースを開く/作成する
-    function openDatabase(callback) {
-        const request = indexedDB.open(dbName, 1);
+        function openDatabase(callback) {
+            const request = indexedDB.open(dbName, 1);
 
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName); // オブジェクトストアを作成
-                console.log(`ObjectStore '${storeName}' created.`);
-            }
-        };
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(storeName)) {
+                    db.createObjectStore(storeName);
+                    console.log(`ObjectStore '${storeName}' created.`);
+                }
+            };
 
-        request.onsuccess = (event) => {
-            const db = event.target.result;
-            callback(null, db);
-        };
+            request.onsuccess = (event) => {
+                const db = event.target.result;
+                callback(null, db);
+            };
 
-        request.onerror = (event) => {
-            callback(event.target.error, null);
-        };
-    }
+            request.onerror = (event) => {
+                callback(event.target.error, null);
+            };
+        }
 
-    // データを保存する
-    function saveToIndexedDB(key, value, callback) {
-        openDatabase((error, db) => {
-            if (error) {
-                console.error("Database error:", error);
-                callback(error);
-                return;
-            }
-
-            const transaction = db.transaction(storeName, "readwrite");
-            const store = transaction.objectStore(storeName);
-
-            // キーの存在を確認
-            const getRequest = store.get(key);
-            getRequest.onsuccess = () => {
-                const existingData = getRequest.result;
-                const messageElement = document.getElementById("message");
-
-                // メッセージをセット
-                if (existingData !== undefined) {
-                    messageElement.textContent = "上書きしました";
-                } else {
-                    messageElement.textContent = "保存しました";
+        function saveToIndexedDB(key, value) {
+            openDatabase((error, db) => {
+                if (error) {
+                    document.getElementById("message").textContent = "保存エラー: " + error;
+                    return;
                 }
 
-                // データを保存
-                const putRequest = store.put(value, key);
-                putRequest.onsuccess = () => {
-                    console.log(`Data saved with key '${key}':`, value);
+                const transaction = db.transaction(storeName, "readwrite");
+                const store = transaction.objectStore(storeName);
+
+                const getRequest = store.get(key);
+                getRequest.onsuccess = () => {
+                    const existingData = getRequest.result;
+                    const messageElement = document.getElementById("message");
+
+                    if (existingData !== undefined) {
+                        messageElement.textContent = "上書きしました";
+                    } else {
+                        messageElement.textContent = "保存しました";
+                    }
+
+                    const putRequest = store.put(value, key);
+                    putRequest.onsuccess = () => {
+                        console.log(`Data saved with key '${key}':`, value);
+                    };
+
+                    putRequest.onerror = (event) => {
+                        console.error("Error saving data:", event.target.error);
+                    };
                 };
 
-                putRequest.onerror = (event) => {
-                    console.error("Error saving data:", event.target.error);
+                getRequest.onerror = (event) => {
+                    console.error("Error checking existing data:", event.target.error);
                 };
-            };
+            });
+        }
 
-            getRequest.onerror = (event) => {
-                console.error("Error checking existing data:", event.target.error);
-            };
-        });
-    }
-
-    // 保存ボタンのクリックイベント
-    document.getElementById("saveButton").onclick = () => {
-        const key = "test_data";
-        const value = "12345"; // 保存するデータ
-        saveToIndexedDB(key, value, (error) => {
-            if (error) {
-                document.getElementById("message").textContent = "保存エラー: " + error;
-            }
-        });
-    };
+        window.saveTestData = function() {
+            const key = "test_data";
+            const value = "12345";
+            saveToIndexedDB(key, value);
+        };
+    })();
 </script>
-
 <div>
-    <button id="saveButton">保存</button>
+    <button onclick="saveTestData()">保存</button>
     <p id="message"></p>
 </div>
-
 """
 
-# Streamlitで埋め込み
-st.components.v1.html(indexeddb_html)
-
+# Streamlit に JavaScript を埋め込む
+st.components.v1.html(indexeddb_js)
 
 
 # ジャンルと色の定義（簡易カレンダー用）
