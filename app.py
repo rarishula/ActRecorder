@@ -242,24 +242,21 @@ import streamlit.components.v1 as components
 indexeddb_csv_test = """
 <script>
     (function() {
-        // IndexedDBの初期化
         const dbName = "TestDB";
         const storeName = "CSVStore";
-
-        // テスト用CSVデータ
         const csvData = `name,age,city
 John,25,New York
 Alice,30,Los Angeles
 Bob,22,Chicago`;
 
-        // データベースを開く/作成する
-        const request = indexedDB.open(dbName, 1); // データベースバージョンを明示的に設定
+        // データベースを開く/作成する（バージョンを上げる）
+        const request = indexedDB.open(dbName, 2);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName); // オブジェクトストアの作成
-                console.log("ObjectStore created.");
+                db.createObjectStore(storeName); // オブジェクトストアを作成
+                console.log(`ObjectStore '${storeName}' created.`);
             }
         };
 
@@ -267,7 +264,7 @@ Bob,22,Chicago`;
             console.log("Database opened successfully.");
             const db = event.target.result;
 
-            // データを保存
+            // オブジェクトストアにデータを保存
             const transaction = db.transaction(storeName, "readwrite");
             const store = transaction.objectStore(storeName);
             store.put(csvData, "testCSV");
@@ -298,6 +295,7 @@ Bob,22,Chicago`;
     <h3>IndexedDBのテスト結果:</h3>
     <pre id="output">読み込み中...</pre>
 </div>
+
 
 """
 
