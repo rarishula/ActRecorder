@@ -240,74 +240,77 @@ import streamlit as st
 # IndexedDB のテスト用 JavaScript
 indexeddb_js = """
 <script>
-    (function() {
-        const dbName = "TestDB";
-        const storeName = "KeyValueStore";
+const dbName = "TestDB";
+const storeName = "KeyValueStore";
+const dbVersion = 1; // 必ず統一するバージョン
 
-        function openDatabase(callback) {
-            const request = indexedDB.open(dbName, 1);
+function openDatabase(callback) {
+    const request = indexedDB.open(dbName, dbVersion);
 
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains(storeName)) {
-                    db.createObjectStore(storeName);
-                    console.log(`ObjectStore '${storeName}' created.`);
-                }
+    request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName);
+        }
+    };
+
+    request.onsuccess = (event) => {
+        const db = event.target.result;
+        callback(null, db);
+    };
+
+    request.onerror = (event) => {
+        if (event.target.error.name === "VersionError") {
+            const deleteRequest = indexedDB.deleteDatabase(dbName);
+            deleteRequest.onsuccess = () => {
+                console.log("データベースを削除しました。再作成します...");
+                openDatabase(callback);  // 再試行
             };
-
-            request.onsuccess = (event) => {
-                const db = event.target.result;
-                callback(null, db);
-            };
-
-            request.onerror = (event) => {
+            deleteRequest.onerror = () => {
                 callback(event.target.error, null);
             };
+        } else {
+            callback(event.target.error, null);
+        }
+    };
+}
+
+function saveTestData() {
+    openDatabase((error, db) => {
+        if (error) {
+            document.getElementById("message").textContent = "保存エラー: " + error.message;
+            return;
         }
 
-        function saveToIndexedDB(key, value) {
-            openDatabase((error, db) => {
-                if (error) {
-                    document.getElementById("message").textContent = "保存エラー: " + error;
-                    return;
-                }
+        const transaction = db.transaction(storeName, "readwrite");
+        const store = transaction.objectStore(storeName);
+        store.put("12345", "test_data");
+        document.getElementById("message").textContent = "データを保存しました";
+    });
+}
 
-                const transaction = db.transaction(storeName, "readwrite");
-                const store = transaction.objectStore(storeName);
-
-                const getRequest = store.get(key);
-                getRequest.onsuccess = () => {
-                    const existingData = getRequest.result;
-                    const messageElement = document.getElementById("message");
-
-                    if (existingData !== undefined) {
-                        messageElement.textContent = "上書きしました";
-                    } else {
-                        messageElement.textContent = "保存しました";
-                    }
-
-                    const putRequest = store.put(value, key);
-                    putRequest.onsuccess = () => {
-                        console.log(`Data saved with key '${key}':`, value);
-                    };
-
-                    putRequest.onerror = (event) => {
-                        console.error("Error saving data:", event.target.error);
-                    };
-                };
-
-                getRequest.onerror = (event) => {
-                    console.error("Error checking existing data:", event.target.error);
-                };
-            });
+function loadTestData() {
+    openDatabase((error, db) => {
+        if (error) {
+            document.getElementById("message").textContent = "読み込みエラー: " + error.message;
+            return;
         }
 
-        window.saveTestData = function() {
-            const key = "test_data";
-            const value = "12345";
-            saveToIndexedDB(key, value);
+        const transaction = db.transaction(storeName, "readonly");
+        const store = transaction.objectStore(storeName);
+        const request = store.get("test_data");
+
+        request.onsuccess = () => {
+            const data = request.result || "データが見つかりません";
+            document.getElementById("message").textContent = "読み込み結果: " + data;
         };
-    })();
+
+        request.onerror = (event) => {
+            document.getElementById("message").textContent = "読み込みエラー: " + event.target.error;
+        };
+    });
+}
+
 </script>
 <div>
     <button onclick="saveTestData()">保存</button>
