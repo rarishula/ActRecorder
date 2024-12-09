@@ -265,9 +265,20 @@ auto_load_html = """
         }
     }
 
-    // ページロード時に実行
-    loadFromLocalStorage();
+    function waitForStreamlit() {
+        if (typeof Streamlit !== "undefined") {
+            // Streamlitが利用可能になったら実行
+            loadFromLocalStorage();
+        } else {
+            // Streamlitが未定義の場合、100ms後に再試行
+            setTimeout(waitForStreamlit, 100);
+        }
+    }
+
+    // 初期化
+    waitForStreamlit();
 </script>
+
 """
 
 # HTMLコンポーネントでデータを取得
