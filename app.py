@@ -336,7 +336,6 @@ col1, col2 = st.columns(2)
 new_medicine = col1.text_input("服薬種類", key="new_medicine")
 new_time = col2.selectbox("服薬時刻", time_options, key="new_medicine_time")
 
-st.write(pd.DataFrame(health_data["服薬"]))
 
 # 運動記録 (横配置)
 st.write("#### 運動記録")
@@ -344,7 +343,6 @@ col1, col2 = st.columns(2)
 new_exercise = col1.text_input("運動種類", key="new_exercise")
 new_exercise_time = col2.selectbox("運動時刻", time_options, key="new_exercise_time")
 
-st.write(pd.DataFrame(health_data["運動"]))
 
 # 体調記録 (横配置)
 st.write("#### 体調記録")
