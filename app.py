@@ -335,8 +335,6 @@ st.write("#### 服薬記録")
 col1, col2 = st.columns(2)
 new_medicine = col1.text_input("服薬種類", key="new_medicine")
 new_time = col2.selectbox("服薬時刻", time_options, key="new_medicine_time")
-if st.button("服薬を追加"):
-    health_data["服薬"].append({"種類": new_medicine, "時刻": new_time})
 
 st.write(pd.DataFrame(health_data["服薬"]))
 
@@ -345,8 +343,6 @@ st.write("#### 運動記録")
 col1, col2 = st.columns(2)
 new_exercise = col1.text_input("運動種類", key="new_exercise")
 new_exercise_time = col2.selectbox("運動時刻", time_options, key="new_exercise_time")
-if st.button("運動を追加"):
-    health_data["運動"].append({"種類": new_exercise, "時刻": new_exercise_time})
 
 st.write(pd.DataFrame(health_data["運動"]))
 
@@ -433,37 +429,4 @@ if "last_saved_state" not in st.session_state:
 # save_if_needed()
 # count = st_autorefresh(interval=10 * 1000, key="refresh")
 
-import streamlit.components.v1 as components
-import json
 
-# JSONシリアライズ可能な形式に変換
-serializable_session_state = json.dumps(st.session_state)
-
-# JavaScriptコード
-save_load_html = f"""
-<script>
-    function saveToLocalStorage() {{
-        const sessionState = {serializable_session_state};
-        localStorage.setItem('sessionState', JSON.stringify(sessionState));
-        document.getElementById('status').innerText = 'セッションデータを保存しました！';
-    }}
-
-    function loadFromLocalStorage() {{
-        const sessionState = localStorage.getItem('sessionState');
-        if (sessionState) {{
-            document.getElementById('status').innerText = `読み込んだデータ: ${sessionState}`;
-        }} else {{
-            document.getElementById('status').innerText = '保存されたデータがありません！';
-        }}
-    }}
-</script>
-
-<div>
-    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
-    <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
-    <div id="status"></div>
-</div>
-"""
-
-# HTML埋め込み
-components.html(save_load_html, height=100)
