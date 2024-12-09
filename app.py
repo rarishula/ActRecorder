@@ -489,36 +489,44 @@ load_button_html = """
 
 components.html(load_button_html, height=100)
 
-import streamlit.components.v1 as components
 import json
 import pandas as pd
+import streamlit.components.v1 as components
 
 # JSONから元の形式に復元する関数
 def restore_from_serializable(obj):
     if isinstance(obj, list) and len(obj) > 0 and isinstance(obj[0], dict):
         try:
-            # リスト内に辞書がある場合はDataFrameに復元
             return pd.DataFrame(obj)
         except Exception:
-            return obj  # 復元できない場合はそのまま返す
+            return obj
     elif isinstance(obj, dict):
-        # 再帰的に辞書を復元
         return {key: restore_from_serializable(value) for key, value in obj.items()}
     else:
-        return obj  # そのまま返す
+        return obj
 
-# ボタンHTMLコード
+# HTML + JavaScriptでローカルストレージから直接Pythonに送信
 load_to_session_html = """
 <script>
     function loadFromLocalStorage() {
         const storedData = localStorage.getItem('sessionData');
         if (storedData) {
             const parsedData = JSON.parse(storedData);
-            const queryParams = new URLSearchParams({
-                sessionData: JSON.stringify(parsedData)
+            const data = parsedData.data;
+            const health = parsedData.health;
+
+            // Streamlitにデータを送信
+            fetch("/streamlit/sessionData", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data, health })
+            }).then(() => {
+                document.getElementById('status').innerText = 'データをセッションに復元しました！';
+                location.reload(); // ページをリロードして反映
+            }).catch(err => {
+                console.error('送信エラー:', err);
+                document.getElementById('status').innerText = '復元に失敗しました！';
             });
-            // 現在のページにクエリパラメータ付きでリロード
-            window.location.href = window.location.origin + window.location.pathname + "?" + queryParams.toString();
         } else {
             document.getElementById('status').innerText = '保存されたデータがありません！';
         }
@@ -531,21 +539,14 @@ load_to_session_html = """
 </div>
 """
 
-# HTML埋め込み
 components.html(load_to_session_html, height=100)
 
-# Python側でクエリパラメータを受け取り、st.session_stateに復元
-json_data = st.experimental_get_query_params().get("sessionData", [None])[0]
-
-if json_data:
+# サーバーサイドでデータを受信
+if st.experimental_get_query_params().get("sessionData"):
     try:
-        # JSONデータを辞書に変換
-        loaded_data = json.loads(json_data)
-
-        # 各セクションを復元
-        st.session_state["data"] = restore_from_serializable(loaded_data.get("data", {}))
-        st.session_state["health"] = restore_from_serializable(loaded_data.get("health", {}))
-
+        loaded_data = json.loads(st.experimental_get_query_params()["sessionData"][0])
+        st.session_state["data"] = restore_from_serializable(loaded_data["data"])
+        st.session_state["health"] = restore_from_serializable(loaded_data["health"])
         st.success("データがセッションに復元されました！")
     except Exception as e:
         st.error(f"データ復元中にエラーが発生しました: {e}")
