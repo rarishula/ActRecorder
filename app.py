@@ -424,7 +424,7 @@ if "last_saved_state" not in st.session_state:
 
 
 # 保存を10秒ごとにチェック
-# save_if_needed()
-# count = st_autorefresh(interval=10 * 1000, key="refresh")
+save_if_needed()
+count = st_autorefresh(interval=10 * 1000, key="refresh")
 
 
