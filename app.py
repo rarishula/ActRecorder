@@ -433,35 +433,50 @@ if "last_saved_state" not in st.session_state:
 # save_if_needed()
 # count = st_autorefresh(interval=10 * 1000, key="refresh")
 
-data_as_dict = {
-    date: df.to_dict(orient='records') for date, df in st.session_state['data'].items()
-}
+import streamlit as st
+import json
+
+# サンプルデータ（本来はst.session_stateなどから取得）
+if "data" not in st.session_state:
+    st.session_state["data"] = {"example_key": "example_value"}
 
 save_load_html = f"""
 <script>
     function saveToLocalStorage() {{
-        const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
-        const data = JSON.stringify({json.dumps(data_as_dict)});
-        
-        localStorage.setItem('healthData', healthData);
-        localStorage.setItem('data', data);
+        try {{
+            const data = JSON.stringify({json.dumps(st.session_state["data"])});
+            localStorage.setItem('storedData', data);
+            document.getElementById('status').innerText = 'データをブラウザに保存しました！';
+        }} catch (error) {{
+            console.error('Error saving to localStorage:', error);
+            document.getElementById('status').innerText = '保存に失敗しました！';
+        }}
+    }}
 
-        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
+    function loadFromLocalStorage() {{
+        try {{
+            const data = localStorage.getItem('storedData');
+            if (data) {{
+                document.getElementById('status').innerText = `読み込んだデータ: ${data}`;
+            }} else {{
+                document.getElementById('status').innerText = '保存されたデータがありません！';
+            }}
+        }} catch (error) {{
+            console.error('Error loading from localStorage:', error);
+            document.getElementById('status').innerText = '読み込みに失敗しました！';
+        }}
     }}
 </script>
+
+<div>
+    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
+    <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
+    <div id="status"></div>
+</div>
 """
 
-query_params = st.experimental_get_query_params()
-
-if 'healthData' in query_params and 'data' in query_params:
-    health_data = json.loads(query_params['healthData'][0])
-    data = json.loads(query_params['data'][0])
-
-    st.session_state['health'] = health_data
-    st.session_state['data'] = {
-        date: pd.DataFrame.from_records(records) for date, records in data.items()
-    }
-
-    st.success("データをセッションに復元しました！")
+# HTMLコードをStreamlitに埋め込む
+import streamlit.components.v1 as components
+components.html(save_load_html, height=100)
 
 
