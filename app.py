@@ -505,7 +505,9 @@ def restore_from_serializable(obj):
     else:
         return obj
 
-# HTML + JavaScriptでローカルストレージから直接Pythonに送信
+
+
+# HTML + JavaScriptでローカルストレージから直接復元するボタン
 load_to_session_html = """
 <script>
     function loadFromLocalStorage() {
@@ -555,16 +557,20 @@ if st.experimental_get_query_params().get("sessionData"):
     except Exception as e:
         st.error(f"データ復元中にエラーが発生しました: {e}")
 
-# 簡易カレンダーの描画
-if "data" in st.session_state:
-    try:
-        simple_calendar = restore_from_serializable(st.session_state["data"])
+# カレンダー描画ボタン
+if st.button("簡易カレンダーを描画"):
+    if "data" in st.session_state:
+        try:
+            simple_calendar = restore_from_serializable(st.session_state["data"])
 
-        st.write("### 簡易カレンダー: ジャンルのみ")
-        st.dataframe(simple_calendar.style.applymap(
-            lambda v: f"background-color: {genre_colors.get(v, '#FFFFFF')};"
-        ))
+            st.write("### 簡易カレンダー: ジャンルのみ")
+            st.dataframe(simple_calendar.style.applymap(
+                lambda v: f"background-color: {genre_colors.get(v, '#FFFFFF')};"
+            ))
 
-        st.success("簡易カレンダーを描画しました！")
-    except Exception as e:
-        st.error(f"簡易カレンダー描画中にエラーが発生しました: {e}")
+            st.success("簡易カレンダーを描画しました！")
+        except Exception as e:
+            st.error(f"簡易カレンダー描画中にエラーが発生しました: {e}")
+    else:
+        st.warning("セッションにデータがありません。復元を先に行ってください。")
+
