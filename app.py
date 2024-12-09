@@ -439,14 +439,11 @@ data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].item
 save_load_html = f"""
 <script>
     function saveToLocalStorage() {{
-        // Python側でJSON化されたデータをJavaScriptに埋め込む
-        const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
-        const data = JSON.stringify({json.dumps(data_as_dict)});
-        
-        localStorage.setItem('healthData', healthData);
-        localStorage.setItem('data', data);
-
-        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
+        try {{
+            const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
+            const data = JSON.stringify({{
+                {date: df.to_dict(orient='records') for date, df in st.session_state['data'].items()}
+            }});
 
             localStorage.setItem('healthData', healthData);
             localStorage.setItem('data', data);
