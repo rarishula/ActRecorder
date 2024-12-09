@@ -433,17 +433,13 @@ if "last_saved_state" not in st.session_state:
 # save_if_needed()
 # count = st_autorefresh(interval=10 * 1000, key="refresh")
 
-import streamlit as st
-import json
-
-# ローカルストレージへの保存ボタンと読み込みボタンを追加
 save_load_html = """
 <script>
     function saveToLocalStorage() {
         try {
             const sessionState = JSON.stringify(JSON.parse(%s));
             localStorage.setItem('sessionState', sessionState);
-            document.getElementById('status').innerText = 'セッションデータをブラウザに保存しました！';
+            document.getElementById('status').innerText = 'セッションデータを保存しました！';
         } catch (error) {
             console.error('保存エラー:', error);
             document.getElementById('status').innerText = '保存に失敗しました！';
@@ -454,7 +450,12 @@ save_load_html = """
         try {
             const sessionState = localStorage.getItem('sessionState');
             if (sessionState) {
-                document.getElementById('status').innerText = `読み込んだデータ: ${sessionState}`;
+                fetch("/_reload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: sessionState
+                });
+                document.getElementById('status').innerText = 'セッションデータを復元しました！';
             } else {
                 document.getElementById('status').innerText = '保存されたデータがありません！';
             }
@@ -472,6 +473,5 @@ save_load_html = """
 </div>
 """ % json.dumps(st.session_state)
 
-import streamlit.components.v1 as components
+# HTMLを埋め込み
 components.html(save_load_html, height=100)
-
