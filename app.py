@@ -558,28 +558,19 @@ if st.experimental_get_query_params().get("sessionData"):
     except Exception as e:
         st.error(f"データ復元中にエラーが発生しました: {e}")
 
-
-# カレンダー描画ボタン
-if st.button("簡易カレンダーを描画"):
+# デバッグ用ボタン
+if st.button("セッションデータをデバッグ表示"):
     if "data" in st.session_state:
-        try:
-            # 型変換処理を追加
-            if isinstance(st.session_state["data"], dict):
-                simple_calendar = pd.DataFrame(st.session_state["data"])
-            elif isinstance(st.session_state["data"], pd.DataFrame):
-                simple_calendar = st.session_state["data"]
-            else:
-                raise ValueError("データの形式が不正です。")
+        st.write("### デバッグ用 - st.session_state['data']")
+        st.json(st.session_state["data"])  # JSON形式で内容を表示
+        st.write(f"データ型: {type(st.session_state['data'])}")  # データ型を表示
 
-            # 簡易カレンダーを描画
-            st.write("### 簡易カレンダー: ジャンルのみ")
-            st.dataframe(simple_calendar.style.applymap(
-                lambda v: f"background-color: {genre_colors.get(v, '#FFFFFF')};"
-            ))
+    if "health" in st.session_state:
+        st.write("### デバッグ用 - st.session_state['health']")
+        st.json(st.session_state["health"])  # JSON形式で内容を表示
+        st.write(f"データ型: {type(st.session_state['health'])}")  # データ型を表示
 
-            st.success("簡易カレンダーを描画しました！")
-        except Exception as e:
-            st.error(f"簡易カレンダー描画中にエラーが発生しました: {e}")
-    else:
+    if "data" not in st.session_state and "health" not in st.session_state:
         st.warning("セッションにデータがありません。復元を先に行ってください。")
+
 
