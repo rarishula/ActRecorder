@@ -239,7 +239,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import json
 
-# JavaScriptからデータを受信してセッションステートを更新する関数
+# JavaScriptから受信したデータをセッションに反映
 def update_session(data):
     try:
         # JSONを辞書形式に変換してセッションステートに保存
@@ -259,7 +259,7 @@ auto_load_html = """
 
             // Streamlitにデータを送信
             const streamlitData = JSON.stringify(parsedData);
-            Streamlit.setComponentValue(streamlitData);
+            Streamlit.setComponentValue(streamlitData); // Streamlitにデータを送信
         } else {
             console.log('保存されたデータがありません');
         }
@@ -270,20 +270,20 @@ auto_load_html = """
 </script>
 """
 
-# HTMLコンポーネントを挿入し、JavaScriptからデータを取得
+# HTMLコンポーネントでデータを取得
 data_from_js = components.html(auto_load_html, height=0)
 
 # JavaScriptから受信したデータを辞書形式に変換し、セッションステートに保存
-if data_from_js:
+if isinstance(data_from_js, str):  # DeltaGeneratorではなく文字列であることを確認
     try:
-        # JSON文字列を辞書形式に変換
-        parsed_data = json.loads(data_from_js)
+        parsed_data = json.loads(data_from_js)  # JSON文字列を辞書形式に変換
         update_session(parsed_data)
     except json.JSONDecodeError:
         st.error("受信したデータの形式が正しくありません")
     except Exception as e:
         st.error(f"セッションデータ更新中にエラーが発生しました: {e}")
-
+else:
+    st.info("JavaScriptからのデータを待機中です...")
 
 
 # ジャンルと色の定義（簡易カレンダー用）
