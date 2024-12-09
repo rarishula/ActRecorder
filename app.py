@@ -437,33 +437,23 @@ import streamlit.components.v1 as components
 import json
 
 # JSONシリアライズ可能な形式に変換
-serializable_session_state = json.dumps({key: value for key, value in st.session_state.items()})
+serializable_session_state = json.dumps(st.session_state)
 
 # JavaScriptコード
 save_load_html = f"""
 <script>
     function saveToLocalStorage() {{
-        try {{
-            const sessionState = JSON.stringify({serializable_session_state});
-            localStorage.setItem('sessionState', sessionState);
-            document.getElementById('status').innerText = 'セッションデータを保存しました！';
-        }} catch (error) {{
-            console.error('保存エラー:', error);
-            document.getElementById('status').innerText = '保存に失敗しました！';
-        }}
+        const sessionState = {serializable_session_state};
+        localStorage.setItem('sessionState', JSON.stringify(sessionState));
+        document.getElementById('status').innerText = 'セッションデータを保存しました！';
     }}
 
     function loadFromLocalStorage() {{
-        try {{
-            const sessionState = localStorage.getItem('sessionState');
-            if (sessionState) {{
-                document.getElementById('status').innerText = `読み込んだデータ: ${sessionState}`;
-            }} else {{
-                document.getElementById('status').innerText = '保存されたデータがありません！';
-            }}
-        }} catch (error) {{
-            console.error('読み込みエラー:', error);
-            document.getElementById('status').innerText = '読み込みに失敗しました！';
+        const sessionState = localStorage.getItem('sessionState');
+        if (sessionState) {{
+            document.getElementById('status').innerText = `読み込んだデータ: ${sessionState}`;
+        }} else {{
+            document.getElementById('status').innerText = '保存されたデータがありません！';
         }}
     }}
 </script>
