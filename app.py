@@ -283,31 +283,33 @@ auto_load_html = """
 
 import time
 
-# ポーリングカウンターをセッションステートで管理
-if "polling_counter" not in st.session_state:
-    st.session_state.polling_counter = 0
+# 初期化
+if "polling_attempts" not in st.session_state:
+    st.session_state.polling_attempts = 0
 
-# HTMLコンポーネントでデータを取得
+# HTMLコンポーネントでデータを取得（再試行）
 data_from_js = components.html(auto_load_html, height=0)
 
-# JavaScriptから受信したデータを辞書形式に変換し、セッションステートに保存
-if isinstance(data_from_js, str):  # DeltaGeneratorではなく文字列であることを確認
+# JavaScriptから受信したデータを処理
+if isinstance(data_from_js, str):
     try:
-        parsed_data = json.loads(data_from_js)  # JSON文字列を辞書形式に変換
+        parsed_data = json.loads(data_from_js)
         update_session(parsed_data)  # セッションステートに保存
+        st.success("データが正常にセッションに復元されました！")
     except json.JSONDecodeError:
         st.error("受信したデータの形式が正しくありません")
     except Exception as e:
         st.error(f"セッションデータ更新中にエラーが発生しました: {e}")
 else:
-    # データがまだ取得できていない場合、再実行をスケジュール
-    st.session_state.polling_counter += 1
-    if st.session_state.polling_counter < 10:  # 最大10回まで再試行
+    # データがまだ取得できていない場合、再試行
+    st.session_state.polling_attempts += 1
+    if st.session_state.polling_attempts < 10:  # 最大10回再試行
         st.info("JavaScriptからのデータを待機中です...")
-        time.sleep(1)  # 1秒待機
+        time.sleep(1)  # 待機時間を設定
         st.experimental_rerun()
     else:
         st.warning("JavaScriptからのデータ取得に失敗しました。")
+
 
 
 
