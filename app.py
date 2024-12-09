@@ -563,8 +563,15 @@ if st.experimental_get_query_params().get("sessionData"):
 if st.button("簡易カレンダーを描画"):
     if "data" in st.session_state:
         try:
-            simple_calendar = restore_from_serializable(st.session_state["data"])
+            # 型変換処理を追加
+            if isinstance(st.session_state["data"], dict):
+                simple_calendar = pd.DataFrame(st.session_state["data"])
+            elif isinstance(st.session_state["data"], pd.DataFrame):
+                simple_calendar = st.session_state["data"]
+            else:
+                raise ValueError("データの形式が不正です。")
 
+            # 簡易カレンダーを描画
             st.write("### 簡易カレンダー: ジャンルのみ")
             st.dataframe(simple_calendar.style.applymap(
                 lambda v: f"background-color: {genre_colors.get(v, '#FFFFFF')};"
