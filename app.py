@@ -235,52 +235,7 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-import json
 
-# Session State内のデータを変換
-data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].items()}
-health_as_dict = st.session_state['health']
-
-# StreamlitでJavaScriptを埋め込む
-save_load_html = f"""
-<div>
-    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
-    <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
-    <div id="status"></div>
-</div>
-
-<script>
-    function saveToLocalStorage() {{
-        const healthData = JSON.stringify({json.dumps(health_as_dict)});
-        const data = JSON.stringify({json.dumps(data_as_dict)});
-        
-        localStorage.setItem('healthData', healthData);
-        localStorage.setItem('data', data);
-
-        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
-    }}
-
-    function loadFromLocalStorage() {{
-        const healthData = localStorage.getItem('healthData');
-        const data = localStorage.getItem('data');
-        
-        if (healthData && data) {{
-            const pyHealthData = JSON.parse(healthData);
-            const pyData = JSON.parse(data);
-            
-            // Pythonへデータを送る（別途連携処理が必要）
-            console.log("データをロードしました", pyHealthData, pyData);
-            
-            document.getElementById('status').innerText = 'データをブラウザから読み込みました！';
-        }} else {{
-            document.getElementById('status').innerText = '保存されたデータがありません！';
-        }}
-    }}
-</script>
-"""
-
-import streamlit.components.v1 as components
-components.html(save_load_html, height=300)
 
 
 # ジャンルと色の定義（簡易カレンダー用）
@@ -477,3 +432,50 @@ if "last_saved_state" not in st.session_state:
 # 保存を10秒ごとにチェック
 save_if_needed()
 count = st_autorefresh(interval=10 * 1000, key="refresh")
+
+import json
+
+# Session State内のデータを変換
+data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].items()}
+health_as_dict = st.session_state['health']
+
+# StreamlitでJavaScriptを埋め込む
+save_load_html = f"""
+<div>
+    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
+    <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    function saveToLocalStorage() {{
+        const healthData = JSON.stringify({json.dumps(health_as_dict)});
+        const data = JSON.stringify({json.dumps(data_as_dict)});
+        
+        localStorage.setItem('healthData', healthData);
+        localStorage.setItem('data', data);
+
+        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
+    }}
+
+    function loadFromLocalStorage() {{
+        const healthData = localStorage.getItem('healthData');
+        const data = localStorage.getItem('data');
+        
+        if (healthData && data) {{
+            const pyHealthData = JSON.parse(healthData);
+            const pyData = JSON.parse(data);
+            
+            // Pythonへデータを送る（別途連携処理が必要）
+            console.log("データをロードしました", pyHealthData, pyData);
+            
+            document.getElementById('status').innerText = 'データをブラウザから読み込みました！';
+        }} else {{
+            document.getElementById('status').innerText = '保存されたデータがありません！';
+        }}
+    }}
+</script>
+"""
+
+import streamlit.components.v1 as components
+components.html(save_load_html, height=300)
