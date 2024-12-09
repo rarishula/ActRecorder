@@ -433,14 +433,16 @@ if "last_saved_state" not in st.session_state:
 save_if_needed()
 count = st_autorefresh(interval=10 * 1000, key="refresh")
 
+# 事前にDataFrameを辞書形式に変換
+data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].items()}
+
+# JavaScriptコードの埋め込み
 save_load_html = f"""
 <script>
     function saveToLocalStorage() {{
-        // DataFrameを辞書形式に変換したものをJavaScriptに埋め込む
+        // Python側でJSON化されたデータをJavaScriptに埋め込む
         const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
-        const data = JSON.stringify({{
-            {date: df.to_dict() for date, df in st.session_state['data'].items()}
-        }});
+        const data = JSON.stringify({json.dumps(data_as_dict)});
         
         localStorage.setItem('healthData', healthData);
         localStorage.setItem('data', data);
@@ -476,6 +478,9 @@ save_load_html = f"""
     <div id="status"></div>
 </div>
 """
+
+components.html(save_load_html, height=300)
+
 
 components.html(save_load_html, height=300)
 
