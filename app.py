@@ -286,15 +286,15 @@ data_from_js = components.html(auto_load_html, height=0)
 
 if data_from_js:
     try:
-        print(f"JavaScriptから受信したデータ: {data_from_js}")  # 受信データを確認
+        st.write(f"JavaScriptから受信したデータ: {data_from_js}")  # 受信データを確認
         parsed_data = json.loads(data_from_js)  # JSON文字列を辞書形式に変換
         update_session(parsed_data)  # セッションステートに反映
     except json.JSONDecodeError:
-        print("受信したデータが正しいJSON形式ではありません")  # デバッグ用
+        st.write("受信したデータが正しいJSON形式ではありません")  # デバッグ用
     except Exception as e:
-        print(f"データ更新中にエラーが発生しました: {e}")
+        st.write(f"データ更新中にエラーが発生しました: {e}")
 else:
-    print("JavaScriptからのデータを受信できませんでした")
+    st.write("JavaScriptからのデータを受信できませんでした")
 
 
 
