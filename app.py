@@ -251,7 +251,6 @@ auto_load_html = """
                 body: JSON.stringify({ data, health })
             }).then(() => {
                 console.log('データをセッションに復元しました');
-                location.reload();
             }).catch(err => {
                 console.error('送信エラー:', err);
             });
