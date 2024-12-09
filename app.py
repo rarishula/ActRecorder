@@ -266,7 +266,7 @@ auto_load_html = """
     }
 
     // ページロード時に実行
-    //window.onload = loadFromLocalStorage;
+    loadFromLocalStorage();
 </script>
 """
 
