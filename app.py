@@ -235,6 +235,50 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
+import json
+
+# StreamlitでJavaScriptを埋め込む
+save_load_html = f"""
+<div>
+    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
+    <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    function saveToLocalStorage() {{
+        const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
+        const data = JSON.stringify({json.dumps(st.session_state['data'])});
+        
+        localStorage.setItem('healthData', healthData);
+        localStorage.setItem('data', data);
+
+        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
+    }}
+
+    function loadFromLocalStorage() {{
+        const healthData = localStorage.getItem('healthData');
+        const data = localStorage.getItem('data');
+        
+        if (healthData && data) {{
+            const pyHealthData = JSON.parse(healthData);
+            const pyData = JSON.parse(data);
+            
+            // Pythonへデータを送る
+            window.parent.postMessage({{ type: "loadData", healthData: pyHealthData, data: pyData }}, "*");
+            
+            document.getElementById('status').innerText = 'データをブラウザから読み込みました！';
+        }} else {{
+            document.getElementById('status').innerText = '保存されたデータがありません！';
+        }}
+    }}
+</script>
+"""
+
+# HTMLコードを埋め込む
+import streamlit.components.v1 as components
+components.html(save_load_html, height=300)
+
 
 
 # ジャンルと色の定義（簡易カレンダー用）
