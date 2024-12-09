@@ -428,18 +428,33 @@ if "last_saved_state" not in st.session_state:
 #count = st_autorefresh(interval=10 * 1000, key="refresh")
 
 import json
+import pandas as pd
+import streamlit.components.v1 as components
 
-save_button_html = """
+# JSONシリアライズ可能な形式に変換する関数
+def make_serializable(obj):
+    if isinstance(obj, pd.DataFrame):
+        return obj.to_dict(orient="records")  # DataFrameを辞書形式に変換
+    elif isinstance(obj, dict):
+        return {key: make_serializable(value) for key, value in obj.items()}  # 再帰処理
+    else:
+        return obj  # そのまま利用
+
+# st.session_state["data"]と["health"]を変換
+serializable_data = make_serializable(st.session_state.get("data", {}))
+serializable_health = make_serializable(st.session_state.get("health", {}))
+
+# 保存ボタンのHTMLを生成
+save_button_html = f"""
 <script>
-    function saveToLocalStorage() {
-        const data = {
-            simple_calendar: JSON.stringify(simple_calendar),
-            detailed_calendar: JSON.stringify(detailed_calendar),
-            health_calendar: JSON.stringify(health_calendar)
-        };
-        localStorage.setItem('calendars', JSON.stringify(data));
+    function saveToLocalStorage() {{
+        const sessionData = {{
+            data: {json.dumps(serializable_data)},
+            health: {json.dumps(serializable_health)}
+        }};
+        localStorage.setItem('sessionData', JSON.stringify(sessionData));
         document.getElementById('status').innerText = 'データをローカルストレージに保存しました！';
-    }
+    }}
 </script>
 
 <div>
@@ -448,7 +463,9 @@ save_button_html = """
 </div>
 """
 
+# HTMLを埋め込み
 components.html(save_button_html, height=100)
+
 
 load_button_html = """
 <script>
