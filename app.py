@@ -280,22 +280,22 @@ auto_load_html = """
 </script>
 
 """
-
 import time
 
 # 初期化
 if "polling_attempts" not in st.session_state:
-    st.session_state.polling_attempts = 0
+    st.session_state.polling_attempts = 0  # ポーリング回数の初期化
 
-# HTMLコンポーネントでデータを取得（再試行）
+# HTMLコンポーネントでデータを取得
 data_from_js = components.html(auto_load_html, height=0)
 
 # JavaScriptから受信したデータを処理
 if isinstance(data_from_js, str):
     try:
-        parsed_data = json.loads(data_from_js)
+        parsed_data = json.loads(data_from_js)  # JSON文字列を辞書形式に変換
         update_session(parsed_data)  # セッションステートに保存
         st.success("データが正常にセッションに復元されました！")
+        st.session_state.polling_attempts = 0  # 成功したらカウンターをリセット
     except json.JSONDecodeError:
         st.error("受信したデータの形式が正しくありません")
     except Exception as e:
@@ -303,12 +303,13 @@ if isinstance(data_from_js, str):
 else:
     # データがまだ取得できていない場合、再試行
     st.session_state.polling_attempts += 1
-    if st.session_state.polling_attempts < 10:  # 最大10回再試行
-        st.info("JavaScriptからのデータを待機中です...")
-        time.sleep(1)  # 待機時間を設定
+    if st.session_state.polling_attempts < 10:  # 最大10回まで再試行
+        st.info(f"JavaScriptからのデータを待機中です... (試行回数: {st.session_state.polling_attempts}/10)")
+        time.sleep(1)  # 1秒待機
         st.experimental_rerun()
     else:
-        st.warning("JavaScriptからのデータ取得に失敗しました。")
+        st.warning("JavaScriptからのデータ取得に失敗しました。最大試行回数に到達しました。")
+
 
 
 
