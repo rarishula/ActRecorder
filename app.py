@@ -235,38 +235,48 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-# 自動実行するHTMLをStreamlitのコンポーネントとして追加
+import streamlit as st
+import streamlit.components.v1 as components
+import json
+
+# JavaScriptからデータを受信してセッションステートを更新
+def update_session(data):
+    st.session_state["data"] = data.get("data", {})
+    st.session_state["health"] = data.get("health", {})
+
+# HTML + JavaScriptの埋め込み
 auto_load_html = """
 <script>
     function loadFromLocalStorage() {
         const storedData = localStorage.getItem('sessionData');
         if (storedData) {
             const parsedData = JSON.parse(storedData);
-            const data = parsedData.data;
-            const health = parsedData.health;
 
-            fetch("/streamlit/sessionData", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ data, health })
-            }).then(() => {
-                console.log('データをセッションに復元しました');
-            }).catch(err => {
-                console.error('送信エラー:', err);
-            });
+            // Streamlitにデータを送信
+            const streamlitData = JSON.stringify(parsedData);
+            Streamlit.setComponentValue(streamlitData);
         } else {
             console.log('保存されたデータがありません');
         }
     }
 
-    window.onload = function() {
-        loadFromLocalStorage();
-    };
+    // ページロード時に実行
+    window.onload = loadFromLocalStorage;
 </script>
 """
 
-# StreamlitにHTMLを埋め込む
-components.html(auto_load_html, height=0)
+# Streamlitコンポーネントを埋め込む
+data_from_js = components.html(auto_load_html, height=0)
+
+# JavaScriptから送信されたデータを反映
+if data_from_js:
+    try:
+        parsed_data = json.loads(data_from_js)
+        update_session(parsed_data)
+        st.success("セッションステートが更新されました！")
+    except Exception as e:
+        st.error(f"データの更新中にエラーが発生しました: {e}")
+
 
 
 
