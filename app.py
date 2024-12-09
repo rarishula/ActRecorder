@@ -436,39 +436,33 @@ if "last_saved_state" not in st.session_state:
 import streamlit as st
 import json
 
-# サンプルデータ（JSONシリアライズ可能な形式に変換）
-if "data" not in st.session_state:
-    st.session_state["data"] = {"example_key": {"nested_key": "example_value"}}
-
-# JSONシリアライズ可能な形式に変換
-serializable_data = json.dumps(st.session_state["data"])
-
-save_load_html = f"""
+# ローカルストレージへの保存ボタンと読み込みボタンを追加
+save_load_html = """
 <script>
-    function saveToLocalStorage() {{
-        try {{
-            const data = JSON.stringify({serializable_data});
-            localStorage.setItem('storedData', data);
-            document.getElementById('status').innerText = 'データをブラウザに保存しました！';
-        }} catch (error) {{
-            console.error('Error saving to localStorage:', error);
+    function saveToLocalStorage() {
+        try {
+            const sessionState = JSON.stringify(JSON.parse(%s));
+            localStorage.setItem('sessionState', sessionState);
+            document.getElementById('status').innerText = 'セッションデータをブラウザに保存しました！';
+        } catch (error) {
+            console.error('保存エラー:', error);
             document.getElementById('status').innerText = '保存に失敗しました！';
-        }}
-    }}
+        }
+    }
 
-    function loadFromLocalStorage() {{
-        try {{
-            const data = localStorage.getItem('storedData');
-            if (data) {{
-                document.getElementById('status').innerText = `読み込んだデータ: ${data}`;
-            }} else {{
+    function loadFromLocalStorage() {
+        try {
+            const sessionState = localStorage.getItem('sessionState');
+            if (sessionState) {
+                document.getElementById('status').innerText = `読み込んだデータ: ${sessionState}`;
+            } else {
                 document.getElementById('status').innerText = '保存されたデータがありません！';
-            }}
-        }} catch (error) {{
-            console.error('Error loading from localStorage:', error);
+            }
+        } catch (error) {
+            console.error('読み込みエラー:', error);
             document.getElementById('status').innerText = '読み込みに失敗しました！';
-        }}
-    }}
+        }
+    }
 </script>
 
 <div>
@@ -476,11 +470,8 @@ save_load_html = f"""
     <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
     <div id="status"></div>
 </div>
-"""
+""" % json.dumps(st.session_state)
 
-# HTMLコードをStreamlitに埋め込む
 import streamlit.components.v1 as components
 components.html(save_load_html, height=100)
-
-
 
