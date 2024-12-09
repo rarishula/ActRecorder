@@ -486,11 +486,11 @@ load_button_html = """
 </div>
 """
 
-
 components.html(load_button_html, height=100)
 
 import json
 import pandas as pd
+import streamlit as st
 import streamlit.components.v1 as components
 
 # JSONから元の形式に復元する関数
@@ -544,9 +544,27 @@ components.html(load_to_session_html, height=100)
 # サーバーサイドでデータを受信
 if st.experimental_get_query_params().get("sessionData"):
     try:
+        # JSONデータを辞書に変換
         loaded_data = json.loads(st.experimental_get_query_params()["sessionData"][0])
+
+        # 各セクションを復元
         st.session_state["data"] = restore_from_serializable(loaded_data["data"])
         st.session_state["health"] = restore_from_serializable(loaded_data["health"])
+
         st.success("データがセッションに復元されました！")
     except Exception as e:
         st.error(f"データ復元中にエラーが発生しました: {e}")
+
+# 簡易カレンダーの描画
+if "data" in st.session_state:
+    try:
+        simple_calendar = restore_from_serializable(st.session_state["data"])
+
+        st.write("### 簡易カレンダー: ジャンルのみ")
+        st.dataframe(simple_calendar.style.applymap(
+            lambda v: f"background-color: {genre_colors.get(v, '#FFFFFF')};"
+        ))
+
+        st.success("簡易カレンダーを描画しました！")
+    except Exception as e:
+        st.error(f"簡易カレンダー描画中にエラーが発生しました: {e}")
