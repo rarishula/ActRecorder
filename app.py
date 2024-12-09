@@ -245,9 +245,9 @@ def update_session(data):
         # JSONを辞書形式に変換してセッションステートに保存
         st.session_state["data"] = data.get("data", {})
         st.session_state["health"] = data.get("health", {})
-        st.success("セッションデータが正常に復元されました！")
+        print("セッションデータが正常に復元されました！")  # 成功メッセージをコンソールに出力
     except Exception as e:
-        st.error(f"データの復元中にエラーが発生しました: {e}")
+        print(f"データの復元中にエラーが発生しました: {e}")  # エラーメッセージをコンソールに出力
 
 # 自動実行するHTML + JavaScriptの埋め込み
 auto_load_html = """
@@ -260,8 +260,9 @@ auto_load_html = """
             // Streamlitにデータを送信
             const streamlitData = JSON.stringify(parsedData);
             Streamlit.setComponentValue(streamlitData); // Streamlitにデータを送信
+            console.log("データをローカルストレージから読み込み、Streamlitに送信しました。");
         } else {
-            console.log('保存されたデータがありません');
+            console.log("保存されたデータがありません");
         }
     }
 
@@ -278,8 +279,8 @@ auto_load_html = """
     // 初期化
     waitForStreamlit();
 </script>
-
 """
+
 
 
 
