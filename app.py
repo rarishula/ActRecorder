@@ -433,85 +433,35 @@ if "last_saved_state" not in st.session_state:
 # save_if_needed()
 # count = st_autorefresh(interval=10 * 1000, key="refresh")
 
-# 事前にDataFrameを辞書形式に変換
-data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].items()}
+data_as_dict = {
+    date: df.to_dict(orient='records') for date, df in st.session_state['data'].items()
+}
 
 save_load_html = f"""
 <script>
     function saveToLocalStorage() {{
-        try {{
-            const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
-            const data = JSON.stringify({{
-                {date: df.to_dict(orient='records') for date, df in st.session_state['data'].items()}
-            }});
+        const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
+        const data = JSON.stringify({json.dumps(data_as_dict)});
+        
+        localStorage.setItem('healthData', healthData);
+        localStorage.setItem('data', data);
 
-            localStorage.setItem('healthData', healthData);
-            localStorage.setItem('data', data);
-
-            document.getElementById('status').innerText = 'データをブラウザに保存しました！';
-        }} catch (error) {{
-            document.getElementById('status').innerText = 'データの保存中にエラーが発生しました！';
-            console.error('Error saving to localStorage:', error);
-        }}
-    }}
-
-    function loadFromLocalStorage() {{
-        try {{
-            const healthData = localStorage.getItem('healthData');
-            const data = localStorage.getItem('data');
-
-            if (healthData && data) {{
-                const query = new URLSearchParams({{
-                    healthData: healthData,
-                    data: data
-                }}).toString();
-
-                // 現在のURLを更新してリロード
-                const url = new URL(window.location.href);
-                url.search = query;
-                window.location.href = url.toString();
-            }} else {{
-                document.getElementById('status').innerText = '保存されたデータがありません！';
-            }}
-        }} catch (error) {{
-            document.getElementById('status').innerText = 'データの読み込み中にエラーが発生しました！';
-            console.error('Error loading from localStorage:', error);
-        }}
+        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
     }}
 </script>
-
-<div>
-    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
-    <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
-    <div id="status"></div>
-</div>
 """
 
-components.html(save_load_html, height=100)
-
-# 初期化処理
-if "data" not in st.session_state:
-    st.session_state["data"] = {}
-
-if "health" not in st.session_state:
-    st.session_state["health"] = {}
-
-# クエリパラメータからデータを取得して復元
 query_params = st.experimental_get_query_params()
+
 if 'healthData' in query_params and 'data' in query_params:
-    try:
-        # クエリパラメータをデコードしてセッションに反映
-        health_data = json.loads(query_params['healthData'][0])
-        data = json.loads(query_params['data'][0])
+    health_data = json.loads(query_params['healthData'][0])
+    data = json.loads(query_params['data'][0])
 
-        st.session_state['health'] = health_data
-        st.session_state['data'] = {
-            date: pd.DataFrame.from_records(records) for date, records in data.items()
-        }
+    st.session_state['health'] = health_data
+    st.session_state['data'] = {
+        date: pd.DataFrame.from_records(records) for date, records in data.items()
+    }
 
-        # クエリパラメータをリセットしてURLをクリア
-        st.experimental_set_query_params()
-        st.success("データをセッションに復元しました！")
-        st.experimental_rerun()  # ページを再描画
-    except Exception as e:
-        st.error(f"データ復元中にエラーが発生しました: {e}")
+    st.success("データをセッションに復元しました！")
+
+
