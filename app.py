@@ -237,102 +237,18 @@ def save_if_needed():
 
 import streamlit as st
 
-# IndexedDB のテスト用 JavaScript
-indexeddb_js = """
-<script>
-
-</(function() {
-    const dbName = "TestDB";
-    const storeName = "KeyValueStore";
-
-    function openDatabase(callback) {
-        const request = indexedDB.open(dbName);
-
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName);
-                console.log(`ObjectStore '${storeName}' created.`);
-            }
-        };
-
-        request.onsuccess = (event) => {
-            const db = event.target.result;
-
-            // オブジェクトストアの存在確認
-            if (!db.objectStoreNames.contains(storeName)) {
-                console.error(`ObjectStore '${storeName}' not found.`);
-                callback(new Error(`ObjectStore '${storeName}' not found.`), null);
-                return;
-            }
-
-            callback(null, db);
-        };
-
-        request.onerror = (event) => {
-            callback(event.target.error, null);
-        };
-
-        request.onblocked = () => {
-            console.error("Database open request is blocked.");
-        };
-    }
-
-    function saveToIndexedDB(key, value) {
-        openDatabase((error, db) => {
-            if (error) {
-                document.getElementById("message").textContent = "保存エラー: " + error.message;
-                return;
-            }
-
-            const transaction = db.transaction(storeName, "readwrite");
-            const store = transaction.objectStore(storeName);
-
-            const getRequest = store.get(key);
-            getRequest.onsuccess = () => {
-                const existingData = getRequest.result;
-                const messageElement = document.getElementById("message");
-
-                if (existingData !== undefined) {
-                    messageElement.textContent = "上書きしました";
-                } else {
-                    messageElement.textContent = "保存しました";
-                }
-
-                const putRequest = store.put(value, key);
-                putRequest.onsuccess = () => {
-                    console.log(`Data saved with key '${key}':`, value);
-                };
-
-                putRequest.onerror = (event) => {
-                    console.error("Error saving data:", event.target.error);
-                };
-            };
-
-            getRequest.onerror = (event) => {
-                console.error("Error checking existing data:", event.target.error);
-            };
-        });
-    }
-
-    window.saveTestData = function() {
-        const key = "test_data";
-        const value = "12345";
-        saveToIndexedDB(key, value);
-    };
-})();
-
-</script>
+# JavaScriptファイルの読み込みを定義
+html_code = """
+<script src="/static/indexeddb.js"></script>
+<script src="/static/main.js"></script>
 <div>
-    <button onclick="saveTestData()">保存</button>
+    <button id="saveButton">保存</button>
+    <button id="loadButton">読み込み</button>
     <p id="message"></p>
 </div>
 """
 
-# Streamlit に JavaScript を埋め込む
-st.components.v1.html(indexeddb_js)
-
-
+st.components.v1.html(html_code)
 
 
 # ジャンルと色の定義（簡易カレンダー用）
