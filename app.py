@@ -239,12 +239,17 @@ import streamlit as st
 import streamlit.components.v1 as components
 import json
 
-# JavaScriptからデータを受信してセッションステートを更新
+# JavaScriptからデータを受信してセッションステートを更新する関数
 def update_session(data):
-    st.session_state["data"] = data.get("data", {})
-    st.session_state["health"] = data.get("health", {})
+    try:
+        # JSONを辞書形式に変換してセッションステートに保存
+        st.session_state["data"] = data.get("data", {})
+        st.session_state["health"] = data.get("health", {})
+        st.success("セッションデータが正常に復元されました！")
+    except Exception as e:
+        st.error(f"データの復元中にエラーが発生しました: {e}")
 
-# HTML + JavaScriptの埋め込み
+# 自動実行するHTML + JavaScriptの埋め込み
 auto_load_html = """
 <script>
     function loadFromLocalStorage() {
@@ -265,18 +270,19 @@ auto_load_html = """
 </script>
 """
 
-# Streamlitコンポーネントを埋め込む
+# HTMLコンポーネントを挿入し、JavaScriptからデータを取得
 data_from_js = components.html(auto_load_html, height=0)
 
-# JavaScriptから送信されたデータを反映
+# JavaScriptから受信したデータを辞書形式に変換し、セッションステートに保存
 if data_from_js:
     try:
+        # JSON文字列を辞書形式に変換
         parsed_data = json.loads(data_from_js)
         update_session(parsed_data)
-        st.success("セッションステートが更新されました！")
+    except json.JSONDecodeError:
+        st.error("受信したデータの形式が正しくありません")
     except Exception as e:
-        st.error(f"データの更新中にエラーが発生しました: {e}")
-
+        st.error(f"セッションデータ更新中にエラーが発生しました: {e}")
 
 
 
