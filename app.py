@@ -237,6 +237,10 @@ def save_if_needed():
 
 import json
 
+# Session State内のデータを変換
+data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].items()}
+health_as_dict = st.session_state['health']
+
 # StreamlitでJavaScriptを埋め込む
 save_load_html = f"""
 <div>
@@ -247,8 +251,8 @@ save_load_html = f"""
 
 <script>
     function saveToLocalStorage() {{
-        const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
-        const data = JSON.stringify({json.dumps(st.session_state['data'])});
+        const healthData = JSON.stringify({json.dumps(health_as_dict)});
+        const data = JSON.stringify({json.dumps(data_as_dict)});
         
         localStorage.setItem('healthData', healthData);
         localStorage.setItem('data', data);
@@ -264,8 +268,8 @@ save_load_html = f"""
             const pyHealthData = JSON.parse(healthData);
             const pyData = JSON.parse(data);
             
-            // Pythonへデータを送る
-            window.parent.postMessage({{ type: "loadData", healthData: pyHealthData, data: pyData }}, "*");
+            // Pythonへデータを送る（別途連携処理が必要）
+            console.log("データをロードしました", pyHealthData, pyData);
             
             document.getElementById('status').innerText = 'データをブラウザから読み込みました！';
         }} else {{
@@ -275,10 +279,8 @@ save_load_html = f"""
 </script>
 """
 
-# HTMLコードを埋め込む
 import streamlit.components.v1 as components
 components.html(save_load_html, height=300)
-
 
 
 # ジャンルと色の定義（簡易カレンダー用）
