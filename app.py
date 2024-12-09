@@ -440,68 +440,55 @@ data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].item
 health_as_dict = st.session_state['health']
 
 # StreamlitでJavaScriptを埋め込む
-save_load_html = f"""
+save_load_html = """
+<script>
+    function loadFromLocalStorage() {
+        const healthData = localStorage.getItem('healthData');
+        const data = localStorage.getItem('data');
+
+        if (healthData && data) {
+            const query = new URLSearchParams({
+                healthData: healthData,
+                data: data
+            }).toString();
+
+            // 現在のURLを更新
+            const url = new URL(window.location.href);
+            url.search = query;
+            window.location.href = url.toString();
+
+            document.getElementById('status').innerText = 'データをブラウザから読み込み、Pythonに送信しました！';
+        } else {
+            document.getElementById('status').innerText = '保存されたデータがありません！';
+        }
+    }
+</script>
+
 <div>
-    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
     <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
     <div id="status"></div>
 </div>
-
-<script>
-    function saveToLocalStorage() {{
-        const healthData = JSON.stringify({json.dumps(health_as_dict)});
-        const data = JSON.stringify({json.dumps(data_as_dict)});
-        
-        localStorage.setItem('healthData', healthData);
-        localStorage.setItem('data', data);
-
-        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
-    }}
-
-    function loadFromLocalStorage() {{
-        const healthData = localStorage.getItem('healthData');
-        const data = localStorage.getItem('data');
-        
-        if (healthData && data) {{
-            const pyHealthData = JSON.parse(healthData);
-            const pyData = JSON.parse(data);
-            
-            // Pythonへデータを送る（別途連携処理が必要）
-            console.log("データをロードしました", pyHealthData, pyData);
-            
-            document.getElementById('status').innerText = 'データをブラウザから読み込みました！';
-        }} else {{
-            document.getElementById('status').innerText = '保存されたデータがありません！';
-        }}
-    }}
-</script>
 """
 
 import streamlit.components.v1 as components
-components.html(save_load_html, height=300)
+components.html(save_load_html, height=50)
 
-# 初期化（受信データを一時的に保存する領域を準備）
-if "restored_data" not in st.session_state:
-    st.session_state["restored_data"] = None
+# クエリパラメータを取得
+query_params = st.experimental_get_query_params()
 
-# データ復元処理
-if st.session_state["restored_data"] is not None:
+# クエリパラメータが存在する場合にセッション状態に復元
+if 'healthData' in query_params and 'data' in query_params:
     try:
-        restored_data = st.session_state["restored_data"]
+        # データをデコードしてセッションに保存
+        health_data = json.loads(query_params['healthData'][0])
+        data = json.loads(query_params['data'][0])
 
-        # 健康データの復元
-        st.session_state["health"] = json.loads(restored_data["healthData"])
-
-        # ジャンルデータの復元
+        # セッション状態に反映
+        st.session_state["health"] = health_data
         st.session_state["data"] = {
-            date: pd.DataFrame.from_dict(json.loads(df))
-            for date, df in restored_data["data"].items()
+            date: pd.DataFrame.from_dict(df) for date, df in data.items()
         }
 
-        st.success("前回のセッションデータを復元しました！")
+        st.success("データをセッションに復元しました！")
     except Exception as e:
         st.error(f"データ復元中にエラーが発生しました: {e}")
-    finally:
-        # 一度復元が終わったらデータをリセット
-        st.session_state["restored_data"] = None
-
