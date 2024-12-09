@@ -489,3 +489,63 @@ load_button_html = """
 
 components.html(load_button_html, height=100)
 
+import streamlit.components.v1 as components
+import json
+import pandas as pd
+
+# JSONから元の形式に復元する関数
+def restore_from_serializable(obj):
+    if isinstance(obj, list) and len(obj) > 0 and isinstance(obj[0], dict):
+        try:
+            # リスト内に辞書がある場合はDataFrameに復元
+            return pd.DataFrame(obj)
+        except Exception:
+            return obj  # 復元できない場合はそのまま返す
+    elif isinstance(obj, dict):
+        # 再帰的に辞書を復元
+        return {key: restore_from_serializable(value) for key, value in obj.items()}
+    else:
+        return obj  # そのまま返す
+
+# ボタンHTMLコード
+load_to_session_html = """
+<script>
+    function loadFromLocalStorage() {
+        const storedData = localStorage.getItem('sessionData');
+        if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            const queryParams = new URLSearchParams({
+                sessionData: JSON.stringify(parsedData)
+            });
+            // 現在のページにクエリパラメータ付きでリロード
+            window.location.href = window.location.origin + window.location.pathname + "?" + queryParams.toString();
+        } else {
+            document.getElementById('status').innerText = '保存されたデータがありません！';
+        }
+    }
+</script>
+
+<div>
+    <button onclick="loadFromLocalStorage()">ローカルストレージから復元</button>
+    <div id="status"></div>
+</div>
+"""
+
+# HTML埋め込み
+components.html(load_to_session_html, height=100)
+
+# Python側でクエリパラメータを受け取り、st.session_stateに復元
+json_data = st.experimental_get_query_params().get("sessionData", [None])[0]
+
+if json_data:
+    try:
+        # JSONデータを辞書に変換
+        loaded_data = json.loads(json_data)
+
+        # 各セクションを復元
+        st.session_state["data"] = restore_from_serializable(loaded_data.get("data", {}))
+        st.session_state["health"] = restore_from_serializable(loaded_data.get("health", {}))
+
+        st.success("データがセッションに復元されました！")
+    except Exception as e:
+        st.error(f"データ復元中にエラーが発生しました: {e}")
