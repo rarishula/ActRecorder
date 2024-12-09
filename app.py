@@ -436,15 +436,18 @@ if "last_saved_state" not in st.session_state:
 import streamlit as st
 import json
 
-# サンプルデータ（本来はst.session_stateなどから取得）
+# サンプルデータ（JSONシリアライズ可能な形式に変換）
 if "data" not in st.session_state:
-    st.session_state["data"] = {"example_key": "example_value"}
+    st.session_state["data"] = {"example_key": {"nested_key": "example_value"}}
+
+# JSONシリアライズ可能な形式に変換
+serializable_data = json.dumps(st.session_state["data"])
 
 save_load_html = f"""
 <script>
     function saveToLocalStorage() {{
         try {{
-            const data = JSON.stringify({json.dumps(st.session_state["data"])});
+            const data = JSON.stringify({serializable_data});
             localStorage.setItem('storedData', data);
             document.getElementById('status').innerText = 'データをブラウザに保存しました！';
         }} catch (error) {{
@@ -478,5 +481,6 @@ save_load_html = f"""
 # HTMLコードをStreamlitに埋め込む
 import streamlit.components.v1 as components
 components.html(save_load_html, height=100)
+
 
 
