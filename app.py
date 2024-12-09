@@ -424,7 +424,48 @@ if "last_saved_state" not in st.session_state:
 
 
 # 保存を10秒ごとにチェック
-save_if_needed()
-count = st_autorefresh(interval=10 * 1000, key="refresh")
+#save_if_needed()
+#count = st_autorefresh(interval=10 * 1000, key="refresh")
 
+import json
 
+save_button_html = """
+<script>
+    function saveToLocalStorage() {
+        const data = {
+            simple_calendar: JSON.stringify(simple_calendar),
+            detailed_calendar: JSON.stringify(detailed_calendar),
+            health_calendar: JSON.stringify(health_calendar)
+        };
+        localStorage.setItem('calendars', JSON.stringify(data));
+        document.getElementById('status').innerText = 'データをローカルストレージに保存しました！';
+    }
+</script>
+
+<div>
+    <button onclick="saveToLocalStorage()">ローカルストレージに保存</button>
+    <div id="status"></div>
+</div>
+"""
+
+components.html(save_button_html, height=100)
+
+load_button_html = """
+<script>
+    function loadFromLocalStorage() {
+        const data = JSON.parse(localStorage.getItem('calendars'));
+        if (data) {
+            document.getElementById('status').innerText = `読み込んだデータ: ${JSON.stringify(data)}`;
+        } else {
+            document.getElementById('status').innerText = '保存されたデータがありません！';
+        }
+    }
+</script>
+
+<div>
+    <button onclick="loadFromLocalStorage()">ローカルストレージから読み込み</button>
+    <div id="status"></div>
+</div>
+"""
+
+components.html(load_button_html, height=100)
