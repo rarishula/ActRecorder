@@ -436,8 +436,11 @@ count = st_autorefresh(interval=10 * 1000, key="refresh")
 save_load_html = f"""
 <script>
     function saveToLocalStorage() {{
+        // DataFrameを辞書形式に変換したものをJavaScriptに埋め込む
         const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
-        const data = JSON.stringify({json.dumps(st.session_state['data'])});
+        const data = JSON.stringify({{
+            {date: df.to_dict() for date, df in st.session_state['data'].items()}
+        }});
         
         localStorage.setItem('healthData', healthData);
         localStorage.setItem('data', data);
