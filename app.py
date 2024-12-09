@@ -550,12 +550,14 @@ if st.experimental_get_query_params().get("sessionData"):
         loaded_data = json.loads(st.experimental_get_query_params()["sessionData"][0])
 
         # 各セクションを復元
-        st.session_state["data"] = restore_from_serializable(loaded_data["data"])
-        st.session_state["health"] = restore_from_serializable(loaded_data["health"])
+        # "data"と"health"をDataFrame形式に変換
+        st.session_state["data"] = pd.DataFrame(restore_from_serializable(loaded_data["data"]))
+        st.session_state["health"] = pd.DataFrame(restore_from_serializable(loaded_data["health"]))
 
         st.success("データがセッションに復元されました！")
     except Exception as e:
         st.error(f"データ復元中にエラーが発生しました: {e}")
+
 
 # カレンダー描画ボタン
 if st.button("簡易カレンダーを描画"):
