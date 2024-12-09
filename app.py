@@ -573,25 +573,5 @@ if st.button("セッションデータをデバッグ表示"):
     if "data" not in st.session_state and "health" not in st.session_state:
         st.warning("セッションにデータがありません。復元を先に行ってください。")
 
-# 型変換ボタン
-if st.button("セッションデータをDataFrameに変換"):
-    if "data" in st.session_state and isinstance(st.session_state["data"], dict):
-        try:
-            # 辞書をDataFrameに変換
-            st.session_state["data"] = pd.DataFrame.from_dict(st.session_state["data"])
-            st.success("セッションデータがDataFrameに変換されました！")
-        except Exception as e:
-            st.error(f"DataFrameへの変換中にエラーが発生しました: {e}")
-    else:
-        st.warning("st.session_state['data']は辞書型ではありません。")
 
-    if "health" in st.session_state and isinstance(st.session_state["health"], dict):
-        try:
-            # 辞書をDataFrameに変換
-            st.session_state["health"] = pd.DataFrame.from_dict(st.session_state["health"])
-            st.success("ヘルスデータがDataFrameに変換されました！")
-        except Exception as e:
-            st.error(f"DataFrameへの変換中にエラーが発生しました: {e}")
-    else:
-        st.warning("st.session_state['health']は辞書型ではありません。")
 
