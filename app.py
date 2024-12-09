@@ -281,6 +281,12 @@ auto_load_html = """
 
 """
 
+import time
+
+# ポーリングカウンターをセッションステートで管理
+if "polling_counter" not in st.session_state:
+    st.session_state.polling_counter = 0
+
 # HTMLコンポーネントでデータを取得
 data_from_js = components.html(auto_load_html, height=0)
 
@@ -288,13 +294,21 @@ data_from_js = components.html(auto_load_html, height=0)
 if isinstance(data_from_js, str):  # DeltaGeneratorではなく文字列であることを確認
     try:
         parsed_data = json.loads(data_from_js)  # JSON文字列を辞書形式に変換
-        update_session(parsed_data)
+        update_session(parsed_data)  # セッションステートに保存
     except json.JSONDecodeError:
         st.error("受信したデータの形式が正しくありません")
     except Exception as e:
         st.error(f"セッションデータ更新中にエラーが発生しました: {e}")
 else:
-    st.info("JavaScriptからのデータを待機中です...")
+    # データがまだ取得できていない場合、再実行をスケジュール
+    st.session_state.polling_counter += 1
+    if st.session_state.polling_counter < 10:  # 最大10回まで再試行
+        st.info("JavaScriptからのデータを待機中です...")
+        time.sleep(1)  # 1秒待機
+        st.experimental_rerun()
+    else:
+        st.warning("JavaScriptからのデータ取得に失敗しました。")
+
 
 
 # ジャンルと色の定義（簡易カレンダー用）
