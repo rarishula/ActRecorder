@@ -470,9 +470,10 @@ components.html(save_button_html, height=100)
 load_button_html = """
 <script>
     function loadFromLocalStorage() {
-        const data = JSON.parse(localStorage.getItem('calendars'));
-        if (data) {
-            document.getElementById('status').innerText = `読み込んだデータ: ${JSON.stringify(data)}`;
+        const storedData = JSON.parse(localStorage.getItem('sessionData'));
+        if (storedData) {
+            const { data, health } = storedData;  // dataとhealthを取得
+            document.getElementById('status').innerText = `読み込んだデータ: data=${JSON.stringify(data)}, health=${JSON.stringify(health)}`;
         } else {
             document.getElementById('status').innerText = '保存されたデータがありません！';
         }
@@ -484,5 +485,6 @@ load_button_html = """
     <div id="status"></div>
 </div>
 """
+
 
 components.html(load_button_html, height=100)
