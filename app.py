@@ -479,3 +479,29 @@ save_load_html = f"""
 
 import streamlit.components.v1 as components
 components.html(save_load_html, height=300)
+
+# 初期化（受信データを一時的に保存する領域を準備）
+if "restored_data" not in st.session_state:
+    st.session_state["restored_data"] = None
+
+# データ復元処理
+if st.session_state["restored_data"] is not None:
+    try:
+        restored_data = st.session_state["restored_data"]
+
+        # 健康データの復元
+        st.session_state["health"] = json.loads(restored_data["healthData"])
+
+        # ジャンルデータの復元
+        st.session_state["data"] = {
+            date: pd.DataFrame.from_dict(json.loads(df))
+            for date, df in restored_data["data"].items()
+        }
+
+        st.success("前回のセッションデータを復元しました！")
+    except Exception as e:
+        st.error(f"データ復元中にエラーが発生しました: {e}")
+    finally:
+        # 一度復元が終わったらデータをリセット
+        st.session_state["restored_data"] = None
+
