@@ -433,14 +433,54 @@ if "last_saved_state" not in st.session_state:
 save_if_needed()
 count = st_autorefresh(interval=10 * 1000, key="refresh")
 
+
 import json
 
-# Session State内のデータを変換
-data_as_dict = {date: df.to_dict() for date, df in st.session_state['data'].items()}
-health_as_dict = st.session_state['health']
-
 # StreamlitでJavaScriptを埋め込む
-save_load_html = """
+save_load_html = f"""
+<div>
+    <button onclick="saveToLocalStorage()">ブラウザに保存</button>
+    <button onclick="loadFromLocalStorage()">ブラウザから読み込み</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    function saveToLocalStorage() {{
+        const healthData = JSON.stringify({json.dumps(st.session_state['health'])});
+        const data = JSON.stringify({json.dumps(st.session_state['data'])});
+        
+        localStorage.setItem('healthData', healthData);
+        localStorage.setItem('data', data);
+
+        document.getElementById('status').innerText = 'データをブラウザに保存しました！';
+    }}
+
+    function loadFromLocalStorage() {{
+        const healthData = localStorage.getItem('healthData');
+        const data = localStorage.getItem('data');
+        
+        if (healthData && data) {{
+            const pyHealthData = JSON.parse(healthData);
+            const pyData = JSON.parse(data);
+            
+            // Pythonへデータを送る
+            window.parent.postMessage({{ type: "loadData", healthData: pyHealthData, data: pyData }}, "*");
+            
+            document.getElementById('status').innerText = 'データをブラウザから読み込みました！';
+        }} else {{
+            document.getElementById('status').innerText = '保存されたデータがありません！';
+        }}
+    }}
+</script>
+"""
+
+# HTMLコードを埋め込む
+import streamlit.components.v1 as components
+components.html(save_load_html, height=300)
+
+
+# 新しいHTMLスクリプト（load_from_browser_html）として別名で管理
+load_from_browser_html = """
 <script>
     function loadFromLocalStorage() {
         const healthData = localStorage.getItem('healthData');
@@ -471,24 +511,4 @@ save_load_html = """
 """
 
 import streamlit.components.v1 as components
-components.html(save_load_html, height=50)
-
-# クエリパラメータを取得
-query_params = st.experimental_get_query_params()
-
-# クエリパラメータが存在する場合にセッション状態に復元
-if 'healthData' in query_params and 'data' in query_params:
-    try:
-        # データをデコードしてセッションに保存
-        health_data = json.loads(query_params['healthData'][0])
-        data = json.loads(query_params['data'][0])
-
-        # セッション状態に反映
-        st.session_state["health"] = health_data
-        st.session_state["data"] = {
-            date: pd.DataFrame.from_dict(df) for date, df in data.items()
-        }
-
-        st.success("データをセッションに復元しました！")
-    except Exception as e:
-        st.error(f"データ復元中にエラーが発生しました: {e}")
+components.html(load_from_browser_html, height=50)
