@@ -235,6 +235,39 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
+# 自動実行するHTMLをStreamlitのコンポーネントとして追加
+auto_load_html = """
+<script>
+    function loadFromLocalStorage() {
+        const storedData = localStorage.getItem('sessionData');
+        if (storedData) {
+            const parsedData = JSON.parse(storedData);
+            const data = parsedData.data;
+            const health = parsedData.health;
+
+            fetch("/streamlit/sessionData", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data, health })
+            }).then(() => {
+                console.log('データをセッションに復元しました');
+                location.reload();
+            }).catch(err => {
+                console.error('送信エラー:', err);
+            });
+        } else {
+            console.log('保存されたデータがありません');
+        }
+    }
+
+    window.onload = function() {
+        loadFromLocalStorage();
+    };
+</script>
+"""
+
+# StreamlitにHTMLを埋め込む
+components.html(auto_load_html, height=0)
 
 
 
