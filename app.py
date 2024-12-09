@@ -235,20 +235,6 @@ def save_if_needed():
     else:
         st.write("変更は検出されませんでした。")
 
-import streamlit as st
-
-# JavaScriptファイルの読み込みを定義
-html_code = """
-<script src="/static/indexeddb.js"></script>
-<script src="/static/main.js"></script>
-<div>
-    <button id="saveButton">保存</button>
-    <button id="loadButton">読み込み</button>
-    <p id="message"></p>
-</div>
-"""
-
-st.components.v1.html(html_code)
 
 
 # ジャンルと色の定義（簡易カレンダー用）
